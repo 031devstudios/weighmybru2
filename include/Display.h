@@ -3,7 +3,24 @@
 
 #include <Wire.h>
 #include <Adafruit_GFX.h>
-#include <Adafruit_SSD1306.h>
+
+// Select OLED controller:
+// - Default: SSD1306 (leave this line commented)
+// - SH1106:  uncomment the line below or pass -DUSE_SH1106 in build flags
+// Hint: If begin() succeeds but the screen stays blank on a 128x64 panel,
+//       you likely have an SH1106.
+//
+// #define USE_SH1106
+
+#if defined(USE_SH1106)
+  // SH1106 is also very common for unbranded displays
+  #include <Adafruit_SH110X.h>
+  using DisplayDriver = Adafruit_SH1106G;
+#else
+  // Default to SSD1306 if nothing specified
+  #include <Adafruit_SSD1306.h>
+  using DisplayDriver = Adafruit_SSD1306;
+#endif
 
 class Scale; // Forward declaration
 class FlowRate; // Forward declaration
@@ -61,12 +78,12 @@ private:
     PowerManager* powerManagerPtr;
     BatteryMonitor* batteryPtr;
     class WiFiManager* wifiManagerPtr;
-    Adafruit_SSD1306* display;
+    DisplayDriver* display;     //  alias which covers both SSD1306 and SH1106
     bool displayConnected; // Track if display is actually connected
     
     static const uint8_t SCREEN_WIDTH = 128;
     static const uint8_t SCREEN_HEIGHT = 32;
-    static const uint8_t OLED_RESET = -1; // Reset pin not used
+    static const int8_t OLED_RESET = -1; // Reset pin not used
     static const uint8_t SCREEN_ADDRESS = 0x3C; // Common I2C address for SSD1306
     
     unsigned long messageStartTime;
