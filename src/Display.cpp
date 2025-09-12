@@ -6,12 +6,22 @@
 #include "BatteryMonitor.h"
 #include <WiFi.h>
 
+#if defined(USE_SH1106)
+  static constexpr uint16_t OLED_WHITE = SH110X_WHITE;
+  static constexpr uint16_t OLED_BLACK = SH110X_BLACK;
+#else
+  static constexpr uint16_t OLED_WHITE = SSD1306_WHITE;
+  static constexpr uint16_t OLED_BLACK = SSD1306_BLACK;
+#endif
+
+
 Display::Display(uint8_t sdaPin, uint8_t sclPin, Scale* scale, FlowRate* flowRate)
     : sdaPin(sdaPin), sclPin(sclPin), scalePtr(scale), flowRatePtr(flowRate), bluetoothPtr(nullptr), powerManagerPtr(nullptr), batteryPtr(nullptr), wifiManagerPtr(nullptr),
       messageStartTime(0), messageDuration(2000), showingMessage(false), 
       timerStartTime(0), timerPausedTime(0), timerRunning(false), timerPaused(false),
       lastFlowRate(0.0), showingStatusPage(false), statusPageStartTime(0) {
-    display = new Adafruit_SSD1306(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+    // display = new Adafruit_SSD1306(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+    display = new DisplayDriver(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 }
 
 bool Display::begin() {
@@ -51,9 +61,15 @@ bool Display::begin() {
         return false;
     }
     
+    bool displayInitialized = false;
     // Initialize the display
-    if (!display->begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)) {
-        Serial.println("ERROR: SSD1306 initialization failed");
+#if defined(USE_SH1106)
+    displayInitialized = display->begin(SCREEN_ADDRESS, true);
+#else
+    displayInitialized = display->begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS);
+#endif
+    if (!displayInitialized) {
+        Serial.println("ERROR: SSD1306/SH1106 initialization failed");
         Serial.println("Display will be disabled - running headless mode");
         displayConnected = false;
         return false;
@@ -66,7 +82,7 @@ bool Display::begin() {
     // Show startup message in same format as welcome message
     display->clearDisplay();
     display->setTextSize(2);
-    display->setTextColor(SSD1306_WHITE);
+    display->setTextColor(OLED_WHITE);
     
     String line1 = "WeighMyBru";
     String line2 = "Starting";
@@ -108,7 +124,7 @@ void Display::setupDisplay() {
     }
     
     display->clearDisplay();
-    display->setTextColor(SSD1306_WHITE);
+    display->setTextColor(OLED_WHITE);
     display->cp437(true); // Use full 256 char 'Code Page 437' font
 }
 
@@ -210,7 +226,7 @@ void Display::showSleepCountdown(int seconds) {
     // Show countdown in same large format as WeighMyBru Ready
     display->clearDisplay();
     display->setTextSize(2);
-    display->setTextColor(SSD1306_WHITE);
+    display->setTextColor(OLED_WHITE);
     
     String line1 = "Sleep in";
     String line2 = String(seconds) + "...";
@@ -254,7 +270,7 @@ void Display::showSleepMessage() {
     
     // Show sleep message with large top line and small bottom line
     display->clearDisplay();
-    display->setTextColor(SSD1306_WHITE);
+    display->setTextColor(OLED_WHITE);
     
     // First line: "Sleep in 3" in large text (size 2)
     display->setTextSize(2);
@@ -297,7 +313,7 @@ void Display::showGoingToSleepMessage() {
     // Show "Touch To / Wake Up" in same format as WeighMyBru Ready
     display->clearDisplay();
     display->setTextSize(2);
-    display->setTextColor(SSD1306_WHITE);
+    display->setTextColor(OLED_WHITE);
     
     // Calculate text positioning for centering
     String line1 = "Touch To";
@@ -343,7 +359,7 @@ void Display::showSleepCancelledMessage() {
     // Show "Sleep / Cancelled" in same format as WeighMyBru Ready
     display->clearDisplay();
     display->setTextSize(2);
-    display->setTextColor(SSD1306_WHITE);
+    display->setTextColor(OLED_WHITE);
     
     // Calculate text positioning for centering
     String line1 = "Sleep";
@@ -389,7 +405,7 @@ void Display::showTaringMessage() {
     // Show "Taring..." in same format as WeighMyBru Ready
     display->clearDisplay();
     display->setTextSize(2);
-    display->setTextColor(SSD1306_WHITE);
+    display->setTextColor(OLED_WHITE);
     
     // Since "Taring..." is a single word, we'll center it on one line
     // For consistency with WeighMyBru style, we can split it as "Taring" and "..."
@@ -436,7 +452,7 @@ void Display::showTaredMessage() {
     // Show "Tared!" in same format as WeighMyBru Ready
     display->clearDisplay();
     display->setTextSize(2);
-    display->setTextColor(SSD1306_WHITE);
+    display->setTextColor(OLED_WHITE);
     
     // Split "Tared!" into two lines for better visual impact
     String line1 = "Scale";
@@ -483,7 +499,7 @@ void Display::showIPAddresses() {
     // Show the WeighMyBru Ready message for 3 seconds
     display->clearDisplay();
     display->setTextSize(2);
-    display->setTextColor(SSD1306_WHITE);
+    display->setTextColor(OLED_WHITE);
     
     // Calculate text positioning for centering
     String line1 = "WeighMyBru";
@@ -532,9 +548,13 @@ void Display::setBrightness(uint8_t brightness) {
         return;
     }
     
+#if defined(USE_SH1106)
+    display->setContrast(brightness);
+#else
     // SSD1306 doesn't have brightness control, but we can simulate with contrast
     display->ssd1306_command(SSD1306_SETCONTRAST);
     display->ssd1306_command(brightness);
+#endif
 }
 
 void Display::setBluetoothScale(BluetoothScale* bluetooth) {
@@ -567,7 +587,7 @@ void Display::drawBluetoothStatus() {
         
         // If connected, draw rectangle around "BT"
         if (bluetoothPtr->isConnected()) {
-            display->drawRect(113, -1, 16, 10, SSD1306_WHITE); // Rectangle around "BT"
+            display->drawRect(113, -1, 16, 10, OLED_WHITE); // Rectangle around "BT"
         }
     }
 }
@@ -596,11 +616,11 @@ void Display::drawBatteryStatus() {
         display->getTextBounds(percentStr, 0, 0, &x1, &y1, &textWidth, &textHeight);
         
         // Fill background white and draw black text
-        display->fillRect(0, 0, textWidth + 2, textHeight + 2, SSD1306_WHITE);
-        display->setTextColor(SSD1306_BLACK);
+        display->fillRect(0, 0, textWidth + 2, textHeight + 2, OLED_WHITE);
+        display->setTextColor(OLED_BLACK);
         display->setCursor(1, 1);
         display->print(percentStr);
-        display->setTextColor(SSD1306_WHITE); // Reset text color
+        display->setTextColor(OLED_WHITE); // Reset text color
     } else {
         // Normal percentage display in top-left corner
         display->setCursor(0, 0);
@@ -942,7 +962,7 @@ void Display::showStatusPage() {
     }
 
     display->clearDisplay();
-    display->setTextColor(SSD1306_WHITE);
+    display->setTextColor(OLED_WHITE);
     
     // Top line: Battery %, Scale icon, BLE icon
     display->setTextSize(1);
@@ -964,7 +984,7 @@ void Display::showStatusPage() {
     display->print("HX711");
     if (scaleConnected) {
         // Draw rectangle around "HX711" when connected (with proper spacing)
-        display->drawRect(48, -1, 34, 10, SSD1306_WHITE); // Rectangle around "HX711"
+        display->drawRect(48, -1, 34, 10, OLED_WHITE); // Rectangle around "HX711"
     }
     
     // Bluetooth status (right) - BT text with rectangle border when connected
@@ -972,7 +992,7 @@ void Display::showStatusPage() {
     display->print("BT");
     if (bluetoothPtr != nullptr && bluetoothPtr->isConnected()) {
         // Draw rectangle around "BT" when connected (with proper spacing)
-        display->drawRect(108, -1, 16, 10, SSD1306_WHITE); // Rectangle around "BT"
+        display->drawRect(108, -1, 16, 10, OLED_WHITE); // Rectangle around "BT"
     }
     
     // Bottom line: WiFi mode and IP address (moved to very bottom)
