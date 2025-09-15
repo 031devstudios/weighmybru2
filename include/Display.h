@@ -108,6 +108,10 @@ private:
     void setupDisplay();
     void drawBluetoothStatus(); // Draw Bluetooth connection status icon
     void drawBatteryStatus(); // Draw battery status with 3-segment indicator
+    
+    // show centered one- or twoliner with optional size (default=2)
+    void showCenteredText(const String& line1, const String& line2 = "", uint8_t size1 = 2, uint8_t size2 = 2);
+
 };
 
 #endif

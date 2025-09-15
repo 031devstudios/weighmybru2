@@ -84,33 +84,8 @@ bool Display::begin() {
     display->setTextSize(2);
     display->setTextColor(OLED_WHITE);
     
-    String line1 = "WeighMyBru";
-    String line2 = "Starting";
-    
-    int16_t x1, y1;
-    uint16_t w1, h1, w2, h2;
-    
-    // Get text bounds for both lines
-    display->getTextBounds(line1, 0, 0, &x1, &y1, &w1, &h1);
-    display->getTextBounds(line2, 0, 0, &x1, &y1, &w2, &h2);
-    
-    // Calculate centered positions
-    int centerX1 = (SCREEN_WIDTH - w1) / 2;
-    int centerX2 = (SCREEN_WIDTH - w2) / 2;
-    
-    // Position lines to fit in 32 pixels
-    int line1Y = 0;  // Start at top
-    int line2Y = 16; // Second line at pixel 16
-    
-    // Display first line
-    display->setCursor(centerX1, line1Y);
-    display->print(line1);
-    
-    // Display second line
-    display->setCursor(centerX2, line2Y);
-    display->print(line2);
-    
-    display->display();
+
+    showCenteredText("WeighMyBru", "Starting");
     
     Serial.println("SSD1306 display initialized on SDA:" + String(sdaPin) + " SCL:" + String(sclPin));
     
@@ -222,39 +197,8 @@ void Display::showSleepCountdown(int seconds) {
     currentMessage = "Sleep countdown active";
     messageStartTime = millis();
     showingMessage = true;
-    
-    // Show countdown in same large format as WeighMyBru Ready
-    display->clearDisplay();
-    display->setTextSize(2);
-    display->setTextColor(OLED_WHITE);
-    
-    String line1 = "Sleep in";
-    String line2 = String(seconds) + "...";
-    
-    int16_t x1, y1;
-    uint16_t w1, h1, w2, h2;
-    
-    // Get text bounds for both lines
-    display->getTextBounds(line1, 0, 0, &x1, &y1, &w1, &h1);
-    display->getTextBounds(line2, 0, 0, &x1, &y1, &w2, &h2);
-    
-    // Calculate centered positions
-    int centerX1 = (SCREEN_WIDTH - w1) / 2;
-    int centerX2 = (SCREEN_WIDTH - w2) / 2;
-    
-    // Position lines to fit in 32 pixels
-    int line1Y = 0;  // Start at top
-    int line2Y = 16; // Second line at pixel 16
-    
-    // Display first line
-    display->setCursor(centerX1, line1Y);
-    display->print(line1);
-    
-    // Display second line
-    display->setCursor(centerX2, line2Y);
-    display->print(line2);
-    
-    display->display();
+
+    showCenteredText("Sleep in", String(seconds) + "...");
 }
 
 void Display::showSleepMessage() {
@@ -268,35 +212,7 @@ void Display::showSleepMessage() {
     messageStartTime = millis();
     showingMessage = true;
     
-    // Show sleep message with large top line and small bottom line
-    display->clearDisplay();
-    display->setTextColor(OLED_WHITE);
-    
-    // First line: "Sleep in 3" in large text (size 2)
-    display->setTextSize(2);
-    String line1 = "Sleeping..";
-    
-    int16_t x1, y1;
-    uint16_t w1, h1;
-    display->getTextBounds(line1, 0, 0, &x1, &y1, &w1, &h1);
-    int centerX1 = (SCREEN_WIDTH - w1) / 2;
-    
-    display->setCursor(centerX1, 0);
-    display->print(line1);
-    
-    // Second line: "Touch to cancel" in small text (size 1)
-    display->setTextSize(1);
-    String line2 = "Touch to cancel";
-    
-    uint16_t w2, h2;
-    display->getTextBounds(line2, 0, 0, &x1, &y1, &w2, &h2);
-    int centerX2 = (SCREEN_WIDTH - w2) / 2;
-    
-    // Position small text at bottom (24 pixels from top gives us 8 pixels for the text)
-    display->setCursor(centerX2, 24);
-    display->print(line2);
-    
-    display->display();
+    showCenteredText("Sleeping..", "Touch to cancel", 2, 1);
 }
 
 void Display::showGoingToSleepMessage() {
@@ -311,38 +227,7 @@ void Display::showGoingToSleepMessage() {
     showingMessage = true;
     
     // Show "Touch To / Wake Up" in same format as WeighMyBru Ready
-    display->clearDisplay();
-    display->setTextSize(2);
-    display->setTextColor(OLED_WHITE);
-    
-    // Calculate text positioning for centering
-    String line1 = "Touch To";
-    String line2 = "Wake Up";
-    
-    int16_t x1, y1;
-    uint16_t w1, h1, w2, h2;
-    
-    // Get text bounds for both lines
-    display->getTextBounds(line1, 0, 0, &x1, &y1, &w1, &h1);
-    display->getTextBounds(line2, 0, 0, &x1, &y1, &w2, &h2);
-    
-    // Calculate centered positions - tighter spacing for size 2 text
-    int centerX1 = (SCREEN_WIDTH - w1) / 2;
-    int centerX2 = (SCREEN_WIDTH - w2) / 2;
-    
-    // Position lines closer together to fit in 32 pixels
-    int line1Y = 0;  // Start at top
-    int line2Y = 16; // Second line at pixel 16
-    
-    // Display first line
-    display->setCursor(centerX1, line1Y);
-    display->print(line1);
-    
-    // Display second line
-    display->setCursor(centerX2, line2Y);
-    display->print(line2);
-    
-    display->display();
+    showCenteredText("Touch To", "Wake Up");
 }
 
 void Display::showSleepCancelledMessage() {
@@ -357,38 +242,7 @@ void Display::showSleepCancelledMessage() {
     showingMessage = true;
     
     // Show "Sleep / Cancelled" in same format as WeighMyBru Ready
-    display->clearDisplay();
-    display->setTextSize(2);
-    display->setTextColor(OLED_WHITE);
-    
-    // Calculate text positioning for centering
-    String line1 = "Sleep";
-    String line2 = "Cancelled";
-    
-    int16_t x1, y1;
-    uint16_t w1, h1, w2, h2;
-    
-    // Get text bounds for both lines
-    display->getTextBounds(line1, 0, 0, &x1, &y1, &w1, &h1);
-    display->getTextBounds(line2, 0, 0, &x1, &y1, &w2, &h2);
-    
-    // Calculate centered positions - tighter spacing for size 2 text
-    int centerX1 = (SCREEN_WIDTH - w1) / 2;
-    int centerX2 = (SCREEN_WIDTH - w2) / 2;
-    
-    // Position lines closer together to fit in 32 pixels
-    int line1Y = 0;  // Start at top
-    int line2Y = 16; // Second line at pixel 16
-    
-    // Display first line
-    display->setCursor(centerX1, line1Y);
-    display->print(line1);
-    
-    // Display second line
-    display->setCursor(centerX2, line2Y);
-    display->print(line2);
-    
-    display->display();
+    showCenteredText("Sleep", "Cancelled");
 }
 
 void Display::showTaringMessage() {
@@ -403,39 +257,8 @@ void Display::showTaringMessage() {
     showingMessage = true;
     
     // Show "Taring..." in same format as WeighMyBru Ready
-    display->clearDisplay();
-    display->setTextSize(2);
-    display->setTextColor(OLED_WHITE);
-    
-    // Since "Taring..." is a single word, we'll center it on one line
-    // For consistency with WeighMyBru style, we can split it as "Taring" and "..."
-    String line1 = "Taring";
-    String line2 = "...";
-    
-    int16_t x1, y1;
-    uint16_t w1, h1, w2, h2;
-    
-    // Get text bounds for both lines
-    display->getTextBounds(line1, 0, 0, &x1, &y1, &w1, &h1);
-    display->getTextBounds(line2, 0, 0, &x1, &y1, &w2, &h2);
-    
-    // Calculate centered positions - tighter spacing for size 2 text
-    int centerX1 = (SCREEN_WIDTH - w1) / 2;
-    int centerX2 = (SCREEN_WIDTH - w2) / 2;
-    
-    // Position lines closer together to fit in 32 pixels
-    int line1Y = 0;  // Start at top
-    int line2Y = 16; // Second line at pixel 16
-    
-    // Display first line
-    display->setCursor(centerX1, line1Y);
-    display->print(line1);
-    
-    // Display second line
-    display->setCursor(centerX2, line2Y);
-    display->print(line2);
-    
-    display->display();
+    showCenteredText("Taring", "...");
+
 }
 
 void Display::showTaredMessage() {
@@ -450,38 +273,7 @@ void Display::showTaredMessage() {
     showingMessage = true;
     
     // Show "Tared!" in same format as WeighMyBru Ready
-    display->clearDisplay();
-    display->setTextSize(2);
-    display->setTextColor(OLED_WHITE);
-    
-    // Split "Tared!" into two lines for better visual impact
-    String line1 = "Scale";
-    String line2 = "Tared!";
-    
-    int16_t x1, y1;
-    uint16_t w1, h1, w2, h2;
-    
-    // Get text bounds for both lines
-    display->getTextBounds(line1, 0, 0, &x1, &y1, &w1, &h1);
-    display->getTextBounds(line2, 0, 0, &x1, &y1, &w2, &h2);
-    
-    // Calculate centered positions - tighter spacing for size 2 text
-    int centerX1 = (SCREEN_WIDTH - w1) / 2;
-    int centerX2 = (SCREEN_WIDTH - w2) / 2;
-    
-    // Position lines closer together to fit in 32 pixels
-    int line1Y = 0;  // Start at top
-    int line2Y = 16; // Second line at pixel 16
-    
-    // Display first line
-    display->setCursor(centerX1, line1Y);
-    display->print(line1);
-    
-    // Display second line
-    display->setCursor(centerX2, line2Y);
-    display->print(line2);
-    
-    display->display();
+    showCenteredText("Scale", "Tared!");
 }
 
 void Display::clearMessageState() {
@@ -497,38 +289,7 @@ void Display::showIPAddresses() {
     }
     
     // Show the WeighMyBru Ready message for 3 seconds
-    display->clearDisplay();
-    display->setTextSize(2);
-    display->setTextColor(OLED_WHITE);
-    
-    // Calculate text positioning for centering
-    String line1 = "WeighMyBru";
-    String line2 = "Ready";
-    
-    int16_t x1, y1;
-    uint16_t w1, h1, w2, h2;
-    
-    // Get text bounds for both lines
-    display->getTextBounds(line1, 0, 0, &x1, &y1, &w1, &h1);
-    display->getTextBounds(line2, 0, 0, &x1, &y1, &w2, &h2);
-    
-    // Calculate centered positions - tighter spacing for size 2 text
-    int centerX1 = (SCREEN_WIDTH - w1) / 2;
-    int centerX2 = (SCREEN_WIDTH - w2) / 2;
-    
-    // Position lines closer together to fit in 32 pixels
-    int line1Y = 0;  // Start at top
-    int line2Y = 16; // Second line at pixel 16
-    
-    // Display first line
-    display->setCursor(centerX1, line1Y);
-    display->print(line1);
-    
-    // Display second line
-    display->setCursor(centerX2, line2Y);
-    display->print(line2);
-    
-    display->display();
+    showCenteredText("WeighMyBru", "Ready");
     delay(1000); // Show ready message for 1 second, then continue to normal display
 }
 
@@ -1033,3 +794,45 @@ unsigned long Display::getElapsedTime() const {
         return millis() - timerStartTime;
     }
 }
+
+void Display::showCenteredText(const String& line1, const String& line2, 
+    uint8_t size1, uint8_t size2) {
+    
+    display->clearDisplay();
+    display->setTextColor(OLED_WHITE);
+    
+    int16_t x1, y1;
+    uint16_t w1, h1, w2, h2;
+    
+    // Get text bounds for both lines
+    display->setTextSize(size1);
+    // use 16 as x position for better compatibility with font baselines
+    display->getTextBounds(line1, 16, 0, &x1, &y1, &w1, &h1);
+    display->setTextSize(size2);
+    display->getTextBounds(line2, 16, 0, &x1, &y1, &w2, &h2);
+ 
+    // Calculate centered positions
+    int centerX1 = (SCREEN_WIDTH - w1) / 2;
+    int centerX2 = (SCREEN_WIDTH - w2) / 2;
+
+    // Position lines to fit in 32 pixels
+    int line1Y = 0;  // Start at top
+    int line2Y = 16; // Second line at pixel 16
+    if (size2 == 1) {
+        // Position small text at bottom (24 pixels from top gives us 8 pixels for the text)
+        line2Y = 24;
+    }
+    
+    // Display first line
+    display->setTextSize(size1);
+    display->setCursor(centerX1, line1Y);
+    display->print(line1);
+    
+    // Display second line
+    display->setTextSize(size2);
+    display->setCursor(centerX2, line2Y);
+    display->print(line2);
+    
+    display->display();
+}
+
