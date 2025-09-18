@@ -111,6 +111,8 @@ private:
     
     // show centered one- or twoliner with optional size (default=2)
     void showCenteredText(const String& line1, const String& line2 = "", uint8_t size1 = 2, uint8_t size2 = 2);
+    // split floating numbers into integer and decimal parts
+    void splitFloat(float fval, String &intStr, String &decStr, int decimals);
 
 };
 

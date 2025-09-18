@@ -491,16 +491,9 @@ void Display::showWeightWithFlowAndTimer(float weight) {
     
     // Split weight into integer and decimal parts for custom rendering
     bool isNegative = displayWeight < 0;
-    float absWeight = abs(displayWeight);
-    int integerPart = (int)absWeight;
-    int decimalPart = (int)((absWeight - integerPart) * 10 + 0.5); // Round to 1 decimal
-    
-    // Handle carry-over when decimal part rounds to 10 (e.g., 4.95 -> 5.0)
-    if (decimalPart >= 10) {
-        integerPart += 1;
-        decimalPart = 0;
-    }
-    
+    String weightIntStr, weightDecStr;
+    splitFloat(displayWeight, weightIntStr, weightDecStr, 1);
+   
     // Draw weight with custom decimal point - positioned at left middle
     display->setTextSize(3);
     int weightY = 5; // Middle of 32-pixel screen (size 3 text is ~21px tall, so (32-21)/2 ≈ 5)
@@ -516,12 +509,11 @@ void Display::showWeightWithFlowAndTimer(float weight) {
     }
     
     // Draw integer part in size 3
-    String intStr = String(integerPart);
     display->setCursor(currentX, weightY);
-    display->print(intStr);
+    display->print(weightIntStr);
     
     // Calculate position after integer part
-    display->getTextBounds(intStr, 0, 0, &x1, &y1, &w, &h);
+    display->getTextBounds(weightIntStr, 0, 0, &x1, &y1, &w, &h);
     currentX += w;
     
     // Draw smaller decimal point (size 1) positioned to align with baseline
@@ -534,7 +526,7 @@ void Display::showWeightWithFlowAndTimer(float weight) {
     // Draw decimal digit in size 2 for better readability
     display->setTextSize(2);
     display->setCursor(currentX, weightY + 3); // Positioned relative to weight baseline
-    display->print(String(decimalPart));
+    display->print(weightDecStr);
     
     // Right side: Timer and flow rate stacked (size 2)
     display->setTextSize(2);
@@ -556,19 +548,11 @@ void Display::showWeightWithFlowAndTimer(float weight) {
     
     // === CUSTOM TIMER RENDERING (like weight) ===
     bool timerNegative = currentTime < 0;
-    float absTimer = abs(currentTime);
-    int timerInteger = (int)absTimer;
-    int timerDecimal = (int)((absTimer - timerInteger) * 10 + 0.5);
-    
-    // Handle timer carry-over
-    if (timerDecimal >= 10) {
-        timerInteger += 1;
-        timerDecimal = 0;
-    }
-    
+    String timerIntStr, timerDecStr;
+    splitFloat(currentTime, timerIntStr, timerDecStr, 1);
+
     // Calculate timer position with "T" label at far right
     display->setTextSize(2);
-    String timerIntStr = String(timerInteger);
     if (timerNegative) timerIntStr = "-" + timerIntStr;
     
     uint16_t timerIntWidth, timerDecWidth, timerH, timerLabelWidth;
@@ -577,7 +561,7 @@ void Display::showWeightWithFlowAndTimer(float weight) {
     display->getTextBounds("T", 0, 0, &x1, &y1, &timerLabelWidth, &timerH);
     display->getTextBounds(".", 0, 0, &x1, &y1, &w, &timerH);
     uint16_t timerDotWidth = w;
-    display->getTextBounds(String(timerDecimal), 0, 0, &x1, &y1, &timerDecWidth, &timerH);
+    display->getTextBounds(timerDecStr, 0, 0, &x1, &y1, &timerDecWidth, &timerH);
     
     // Position "T" at far right, numbers to the left
     int timerLabelX = SCREEN_WIDTH - timerLabelWidth;
@@ -595,7 +579,7 @@ void Display::showWeightWithFlowAndTimer(float weight) {
     
     // Draw timer decimal digit (size 1)
     display->setCursor(timerStartX + timerIntWidth + timerDotWidth, 7);
-    display->print(String(timerDecimal));
+    display->print(timerDecStr);
     
     // Draw "T" label at far right (size 1)
     display->setTextSize(1);
@@ -604,19 +588,11 @@ void Display::showWeightWithFlowAndTimer(float weight) {
     
     // === CUSTOM FLOW RATE RENDERING (like weight) ===
     bool flowNegative = displayFlowRate < 0;
-    float absFlow = abs(displayFlowRate);
-    int flowInteger = (int)absFlow;
-    int flowDecimal = (int)((absFlow - flowInteger) * 10 + 0.5);
-    
-    // Handle flow rate carry-over
-    if (flowDecimal >= 10) {
-        flowInteger += 1;
-        flowDecimal = 0;
-    }
-    
+    String flowIntStr, flowDecStr;
+    splitFloat(displayFlowRate, flowIntStr, flowDecStr, 1);
+
     // Calculate flow rate position with "F" label at far right
     display->setTextSize(2);
-    String flowIntStr = String(flowInteger);
     if (flowNegative) flowIntStr = "-" + flowIntStr;
     
     uint16_t flowIntWidth, flowDecWidth, flowH, flowLabelWidth;
@@ -625,7 +601,7 @@ void Display::showWeightWithFlowAndTimer(float weight) {
     display->getTextBounds("F", 0, 0, &x1, &y1, &flowLabelWidth, &flowH);
     display->getTextBounds(".", 0, 0, &x1, &y1, &w, &flowH);
     uint16_t flowDotWidth = w;
-    display->getTextBounds(String(flowDecimal), 0, 0, &x1, &y1, &flowDecWidth, &flowH);
+    display->getTextBounds(flowDecStr, 0, 0, &x1, &y1, &flowDecWidth, &flowH);
     
     // Position "F" at far right, numbers to the left
     int flowLabelX = SCREEN_WIDTH - flowLabelWidth;
@@ -643,7 +619,7 @@ void Display::showWeightWithFlowAndTimer(float weight) {
     
     // Draw flow rate decimal digit (size 1)
     display->setCursor(flowStartX + flowIntWidth + flowDotWidth, 23);
-    display->print(String(flowDecimal));
+    display->print(flowDecStr);
     
     // Draw "F" label at far right (size 1)
     display->setTextSize(1);
@@ -835,4 +811,30 @@ void Display::showCenteredText(const String& line1, const String& line2,
     
     display->display();
 }
+
+void Display::splitFloat(float fval, String &intStr, String &decStr, int decimals) {
+    
+    if (decimals > 2) decimals = 2;
+
+    // scale and round to requested precision
+    long pow10 = (decimals == 1) ? 10L : 100L;
+    long scaled = lroundf(fval * pow10);
+
+    // ignore sign
+    long absScaled = labs(scaled);
+
+    // integer and decimal parts
+    long integerPart = absScaled / pow10;
+    long decimalPart = absScaled % pow10;
+
+    // convert to strings
+    intStr = String(integerPart);
+    decStr = String(decimalPart);
+
+    // left padding
+    while (decStr.length() < decimals) {
+        decStr = "0" + decStr;
+    }
+}
+
 
