@@ -113,7 +113,9 @@ private:
     void showCenteredText(const String& line1, const String& line2 = "", uint8_t size1 = 2, uint8_t size2 = 2);
     // split floating numbers into integer and decimal parts
     void splitFloat(float fval, String &intStr, String &decStr, int decimals);
-
+    // prints a float aligned at the decimal separator (".")
+    void layoutAndPrintFloat(float value, int precision, 
+            int16_t decimalSeparatorX, int16_t baselineY);
 };
 
 #endif

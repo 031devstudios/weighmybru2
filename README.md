@@ -60,3 +60,16 @@ Installation instructions are currently under development, for now follow the [l
 |  1  | Slide Switch                  |
 |  1  | Various Wires                 |
 |  1  | Various Fasteners             |
+
+## About this fork
+
+This fork adds support for SH1106 displays and improves readability of the display.
+Instead of scaling the default font for integer and decimal parts, it uses dedicated fonts.  
+It also extends compatibility to larger 128x64 displays.
+
+The heavy lifting was done by [031devstudios](https://github.com/031devstudios).  
+This fork only provides minor refinements and extensions on top of their excellent work.
+
+### Upstream repository
+
+For the original project and full development history, please visit:  [031devstudios / weighmybru2](https://github.com/031devstudios/weighmybru2).
