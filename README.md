@@ -48,15 +48,34 @@ Installation instructions are currently under development, for now follow the [l
 
 ## Bill Of Materials (BOM)
 
-| Qty |           Item                | 
-| --- | ----------------------------- |  
-|  1  | 500g Mini Loadcell (I-shaped) |  
-|  1  | HX711                         |
-|  1  | ESP32-S3-Supermini Board      |
-|  2  | Capacitive Tocuh Pads         |
-|  1  | 0.91" SSD1306 OLED Display    |
-|  1  | 800mAh Li-ion Battery         |
-|  1  | JST-PH 2.0 Male Connector     |
-|  1  | Slide Switch                  |
-|  1  | Various Wires                 |
-|  1  | Various Fasteners             |
+| Qty |           Item                      | 
+| --- | ----------------------------------- |  
+|  1  | 500g Mini Loadcell (I-shaped)       |  
+|  1  | HX711                               |
+|  1  | ESP32-S3-Supermini Board            |
+|  2  | Capacitive Tocuh Pads               |
+|  1  | 0.91" SSD1306 OLED Display          |
+|  1  | 800mAh Li-ion Battery               |
+|  1  | JST-PH 2.0 Male Connector           |
+|  1  | Slide Switch                        |
+|  1  | Various Wires                       |
+|  2  | M3x5x4 Heat Set Inserts             |
+|  16 | M1.7x4 Self Tapping Screws          |
+|  4  | M3x12 Button Head Screws            |
+|  1  | Female 2 Pin JST Connector(battery) |
+|  2  | 100K ohm 1% 1/4w resistors          |
+|  4  | Self-Adhesive Rubber Feet           |
+|  1  | Double Sided Tape (To hold Battery) |
+
+
+
+##           Printed Parts (Found in CAD Folder)
+
+| Qty |           Item                                        | 
+| --- | ----------------------------------------------------- |  
+|  1  | Bottom - (supported contains engineered supports)     |  
+|  1  | Top                                                   |
+|  1  | ESP32 Clamp                                           |
+|  1  | Screen Clamp                                          |
+|  4  | washers (Used for HX711)                              |
+
