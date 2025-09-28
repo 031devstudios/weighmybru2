@@ -71,11 +71,13 @@ Installation instructions are currently under development, for now follow the [l
 
 ##           Printed Parts (Found in CAD Folder)
 
-| Qty |           Item                                        | 
-| --- | ----------------------------------------------------- |  
-|  1  | Bottom - (supported contains engineered supports)     |  
-|  1  | Top                                                   |
-|  1  | ESP32 Clamp                                           |
-|  1  | Screen Clamp                                          |
-|  4  | washers (Used for HX711)                              |
+| Qty |           Item                    | 
+| --- | ----------------------------------|  
+|  1  | Bottom*                           |  
+|  1  | Top                               |
+|  1  | ESP32 Clamp                       |
+|  1  | Screen Clamp                      |
+|  4  | washers (Used for HX711)          |
+
+<span style="font-size: 8px;">* Bottom has 2 options - supported has engineered supports while the standard requires you to slice with your own supports</span>
 
