@@ -79,5 +79,5 @@ Installation instructions are currently under development, for now follow the [l
 |  1  | Screen Clamp                      |
 |  4  | washers (Used for HX711)          |
 
-<span style="font-size: 4px;">* Bottom has 2 options - supported has engineered supports while the standard requires you to slice with your own supports</span>
+* Bottom has 2 options - supported has engineered supports while the standard requires you to slice with your own supports
 
