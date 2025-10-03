@@ -52,7 +52,7 @@ public:
     bool isTimerRunning() const;
     float getTimerSeconds() const;
     unsigned long getElapsedTime() const; // Get current elapsed time in milliseconds
-    
+    void sleep();
 private:
     uint8_t sdaPin;
     uint8_t sclPin;

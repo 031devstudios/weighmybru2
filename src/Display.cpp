@@ -790,23 +790,23 @@ void Display::showWeightWithFlowAndTimer(float weight) {
     String intStr = String(integerPart);
     display->setCursor(currentX, weightY);
     display->print(intStr);
-    
-    // Calculate position after integer part
-    display->getTextBounds(intStr, 0, 0, &x1, &y1, &w, &h);
-    currentX += w;
-    
-    // Draw smaller decimal point (size 1) positioned to align with baseline
-    display->setTextSize(1);
-    display->setCursor(currentX, weightY + 11); // Offset from weight baseline for alignment
-    display->print(".");
-    display->getTextBounds(".", 0, 0, &x1, &y1, &w, &h);
-    currentX += w;
-    
-    // Draw decimal digit in size 2 for better readability
-    display->setTextSize(2);
-    display->setCursor(currentX, weightY + 3); // Positioned relative to weight baseline
-    display->print(String(decimalPart));
-    
+    if (!isNegative && integerPart < 100){
+        // Calculate position after integer part
+        display->getTextBounds(intStr, 0, 0, &x1, &y1, &w, &h);
+        currentX += w;
+        
+        // Draw smaller decimal point (size 1) positioned to align with baseline
+        display->setTextSize(1);
+        display->setCursor(currentX, weightY + 11); // Offset from weight baseline for alignment
+        display->print(".");
+        display->getTextBounds(".", 0, 0, &x1, &y1, &w, &h);
+        currentX += w;
+        
+        // Draw decimal digit in size 2 for better readability
+        display->setTextSize(2);
+        display->setCursor(currentX, weightY + 3); // Positioned relative to weight baseline
+        display->print(String(decimalPart));
+    }
     // Right side: Timer and flow rate stacked (size 2)
     display->setTextSize(2);
     
@@ -836,43 +836,95 @@ void Display::showWeightWithFlowAndTimer(float weight) {
         timerInteger += 1;
         timerDecimal = 0;
     }
-    
+    // Convert seconds to minutes and seconds
+    int timerMinutes = 0;
+    while (timerInteger > 59) {
+        timerInteger = timerInteger - 60;
+        timerMinutes++;
+
+    }
     // Calculate timer position with "T" label at far right
     display->setTextSize(2);
     String timerIntStr = String(timerInteger);
     if (timerNegative) timerIntStr = "-" + timerIntStr;
+    else if (timerMinutes > 0 && timerInteger < 10) timerIntStr = "0" + timerIntStr;
     
-    uint16_t timerIntWidth, timerDecWidth, timerH, timerLabelWidth;
+    uint16_t timerIntWidth, timerMinutesWidth, timerDecWidth, timerH, timerLabelWidth, timerDotWidth, timerColonWidth;
     display->getTextBounds(timerIntStr, 0, 0, &x1, &y1, &timerIntWidth, &timerH);
+    display->getTextBounds(String(timerMinutes), 0, 0, &x1, &y1, &timerMinutesWidth, &timerH);
     display->setTextSize(1);
     display->getTextBounds("T", 0, 0, &x1, &y1, &timerLabelWidth, &timerH);
-    display->getTextBounds(".", 0, 0, &x1, &y1, &w, &timerH);
-    uint16_t timerDotWidth = w;
+    display->getTextBounds(".", 0, 0, &x1, &y1, &timerDotWidth, &timerH);
+    display->getTextBounds(":", 0, 0, &x1, &y1, &timerColonWidth, &timerH);
     display->getTextBounds(String(timerDecimal), 0, 0, &x1, &y1, &timerDecWidth, &timerH);
     
-    // Position "T" at far right, numbers to the left
-    int timerLabelX = SCREEN_WIDTH - timerLabelWidth;
-    int timerStartX = timerLabelX - timerIntWidth - timerDotWidth - timerDecWidth;
     
-    // Draw timer integer part (size 2)
-    display->setTextSize(2);
-    display->setCursor(timerStartX, 0);
-    display->print(timerIntStr);
     
-    // Draw timer decimal point (size 1)
-    display->setTextSize(1);
-    display->setCursor(timerStartX + timerIntWidth, 7); // Aligned with size 2 baseline
-    display->print(".");
+    if (timerMinutes == 0) {
+        // Position "T" at far right, numbers to the left
+        int timerLabelX = SCREEN_WIDTH - timerLabelWidth;
+        int timerStartX = timerLabelX - timerIntWidth - timerDotWidth - timerDecWidth;
+        // Draw timer integer part (size 2)
+        display->setTextSize(2);
+        display->setCursor(timerStartX, 0);
+        display->print(timerIntStr);
+        
+        // Draw timer decimal point (size 1)
+        display->setTextSize(1);
+        display->setCursor(timerStartX + timerIntWidth, 7); // Aligned with size 2 baseline
+        display->print(".");
+        
+        // Draw timer decimal digit (size 1)
+        display->setCursor(timerStartX + timerIntWidth + timerDotWidth, 7);
+        display->print(String(timerDecimal));
+        
+        // Draw "T" label at far right (size 1)
+        display->setTextSize(1);
+        display->setCursor(timerLabelX, 0); // Far right position
+        display->print("T");
+    // } else if (timerMinutes < 10) {
+    //     // Position "T" at far right, numbers to the left
+    //     int timerLabelX = SCREEN_WIDTH - timerLabelWidth;
+    //     int timerStartX = timerLabelX - timerIntWidth - timerColonWidth - timerMinutesWidth;
+    //     // Draw timer integer part (size 2)
+    //     display->setTextSize(2);
+    //     display->setCursor(timerStartX, 0);
+    //     display->print(String(timerMinutes));
+
+    //     // Draw timer colon (size 1)
+    //     display->setTextSize(1);
+    //     display->setCursor(timerStartX + timerMinutesWidth, 7); // Aligned with size 2 baseline
+    //     display->print(":");
+
+    //     // Draw timer seconds part (size 2)
+    //     display->setTextSize(2);
+    //     display->setCursor(timerStartX + timerColonWidth, 0);
+    //     display->print(timerIntStr);
     
-    // Draw timer decimal digit (size 1)
-    display->setCursor(timerStartX + timerIntWidth + timerDotWidth, 7);
-    display->print(String(timerDecimal));
-    
-    // Draw "T" label at far right (size 1)
-    display->setTextSize(1);
-    display->setCursor(timerLabelX, 0); // Far right position
-    display->print("T");
-    
+    //     // Draw "T" label at far right (size 1)
+    //     display->setTextSize(1);
+    //     display->setCursor(timerLabelX, 0); // Far right position
+    //     display->print("T");
+        
+    } else {
+        // Omit "T", numbers to the left
+        int timerStartX = SCREEN_WIDTH - timerIntWidth - timerColonWidth - timerMinutesWidth;
+        // Draw timer integer part (size 2)
+        display->setTextSize(2);
+        display->setCursor(timerStartX, 0);
+        display->print(String(timerMinutes));
+
+        // Draw timer colon (size 1)
+        display->setTextSize(1);
+        display->setCursor(timerStartX + timerMinutesWidth, 4);
+        display->print(":");
+
+        // Draw timer seconds part (size 2)
+        display->setTextSize(2);
+        display->setCursor(timerStartX + timerMinutesWidth + timerColonWidth, 0);
+        display->print(timerIntStr);
+
+    }    
     // === CUSTOM FLOW RATE RENDERING (like weight) ===
     bool flowNegative = displayFlowRate < 0;
     float absFlow = abs(displayFlowRate);
@@ -992,6 +1044,10 @@ void Display::showStatusPage() {
     if (!displayConnected) {
         return;
     }
+    // If we're showing a message, don't override it with status page
+    if (showingMessage) {
+        return;
+    }
 
     display->clearDisplay();
     display->setTextColor(SSD1306_WHITE);
@@ -1067,4 +1123,14 @@ unsigned long Display::getElapsedTime() const {
     } else {
         return millis() - timerStartTime;
     }
+}
+
+void  Display::sleep () {
+    if(!displayConnected) {
+        return;
+    }
+    Serial.println("Sending display to sleep...");
+    display->ssd1306_command(SSD1306_DISPLAYOFF);
+    Serial.println("Display sent to sleep!");
+
 }
