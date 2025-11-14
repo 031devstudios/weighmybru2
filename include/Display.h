@@ -104,5 +104,10 @@ private:
     void drawBluetoothStatus(); // Draw Bluetooth connection status icon
     void drawBatteryStatus(); // Draw battery status with 3-segment indicator
 };
+#if DISPLAY_CONTROLLER == DISPLAY_CONTROLLER_SSD1306
 using OledDisplay = Display<Ssd1306Driver>;
-
+#elif DISPLAY_CONTROLLER == DISPLAY_CONTROLLER_SH1106
+using OledDisplay = Display<Sh1106Driver>;
+#else
+#error "Unsupported DISPLAY_CONTROLLER value"
+#endif

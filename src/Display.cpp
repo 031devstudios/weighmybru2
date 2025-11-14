@@ -955,4 +955,8 @@ unsigned long Display<Driver>::getElapsedTime() const {
     }
 }
 
+#if DISPLAY_CONTROLLER == DISPLAY_CONTROLLER_SSD1306
 template class Display<Ssd1306Driver>;
+#elif DISPLAY_CONTROLLER == DISPLAY_CONTROLLER_SH1106
+template class Display<Sh1106Driver>;
+#endif
