@@ -6,13 +6,15 @@
 #include "BatteryMonitor.h"
 #include <WiFi.h>
 #include "WiFiManager.h"
+#include "Fonts/FreeSerifBold24pt7b.h"
+#include "Fonts/FreeSans12pt7b.h"
 
 Display::Display(uint8_t sdaPin, uint8_t sclPin, Scale* scale, FlowRate* flowRate)
     : sdaPin(sdaPin), sclPin(sclPin), scalePtr(scale), flowRatePtr(flowRate), bluetoothPtr(nullptr), powerManagerPtr(nullptr), batteryPtr(nullptr), wifiManagerPtr(nullptr),
       messageStartTime(0), messageDuration(2000), showingMessage(false), 
       timerStartTime(0), timerPausedTime(0), timerRunning(false), timerPaused(false),
       lastFlowRate(0.0), showingStatusPage(false), statusPageStartTime(0) {
-    display = new Adafruit_SSD1306(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+    display = new Ssd1306Driver(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 }
 
 bool Display::begin() {

@@ -2,9 +2,7 @@
 #define DISPLAY_H
 
 #include <Wire.h>
-#include <Adafruit_GFX.h>
-#include <Adafruit_SSD1306.h>
-
+#include "Ssd1306Driver.h" 
 class Scale; // Forward declaration
 class FlowRate; // Forward declaration
 class BluetoothScale; // Forward declaration
@@ -62,7 +60,7 @@ private:
     PowerManager* powerManagerPtr;
     BatteryMonitor* batteryPtr;
     class WiFiManager* wifiManagerPtr;
-    Adafruit_SSD1306* display;
+    Ssd1306Driver* display;
     bool displayConnected; // Track if display is actually connected
     
     static const uint8_t SCREEN_WIDTH = 128;
