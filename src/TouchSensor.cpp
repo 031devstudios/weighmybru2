@@ -94,7 +94,7 @@ bool TouchSensor::isTouched() {
     return touched;
 }
 
-void TouchSensor::setDisplay(Display* display) {
+void TouchSensor::setDisplay(OledDisplay* display) {
     displayPtr = display;
 }
 

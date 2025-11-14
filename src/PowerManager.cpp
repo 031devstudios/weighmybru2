@@ -1,7 +1,6 @@
 #include "PowerManager.h"
-#include "Display.h"
 
-PowerManager::PowerManager(uint8_t sleepTouchPin, Display* display) 
+PowerManager::PowerManager(uint8_t sleepTouchPin, OledDisplay* display) 
     : sleepTouchPin(sleepTouchPin), displayPtr(display), sleepTouchThreshold(0),
       lastSleepTouchState(false), lastSleepTouchTime(0), touchStartTime(0),
       debounceDelay(200), sleepCountdownStart(0), sleepCountdownActive(false),
@@ -140,7 +139,7 @@ bool PowerManager::isSleepTouchPressed() {
     return pressed;
 }
 
-void PowerManager::setDisplay(Display* display) {
+void PowerManager::setDisplay(OledDisplay* display) {
     displayPtr = display;
 }
 

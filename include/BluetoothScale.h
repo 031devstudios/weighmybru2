@@ -4,8 +4,7 @@
 #include <NimBLEServer.h>
 #include <NimBLEUtils.h>
 #include "Scale.h"
-
-class Display; // Forward declaration
+#include "Display.h"  
 
 enum class WeighMyBruMessageType : uint8_t {
   SYSTEM = 0x0A,
@@ -27,7 +26,7 @@ public:
     void begin(Scale* scale);
     void begin();  // Initialize without scale reference
     void setScale(Scale* scale);  // Set scale reference later
-    void setDisplay(Display* display); // Set display reference for timer control
+    void setDisplay(OledDisplay* display); // Set display reference for timer control
     void end();
     void update();
     bool isConnected();
@@ -46,7 +45,7 @@ public:
 
 private:
     Scale* scale;
-    Display* display; // Reference to display for timer control
+    OledDisplay* display; // Reference to display for timer control
     NimBLEServer* server;
     NimBLEService* service;
     NimBLECharacteristic* weightCharacteristic;          // Bean Conqueror (simple float)

@@ -1,14 +1,16 @@
-#ifndef DISPLAY_H
-#define DISPLAY_H
+#pragma once
 
 #include <Wire.h>
 #include "Ssd1306Driver.h" 
+#include "DisplayLayout.h"
+
 class Scale; // Forward declaration
 class FlowRate; // Forward declaration
 class BluetoothScale; // Forward declaration
 class PowerManager; // Forward declaration
 class BatteryMonitor; // Forward declaration
 
+template<typename Driver>
 class Display {
 public:
     Display(uint8_t sdaPin, uint8_t sclPin, Scale* scale, FlowRate* flowRate);
@@ -50,6 +52,14 @@ public:
     bool isTimerRunning() const;
     float getTimerSeconds() const;
     unsigned long getElapsedTime() const; // Get current elapsed time in milliseconds
+
+    void setLayout(IDisplayLayout<Driver>* layout) {
+        if (layout) {
+            currentLayout = layout;
+        }
+    }
+
+
     
 private:
     uint8_t sdaPin;
@@ -63,6 +73,9 @@ private:
     Ssd1306Driver* display;
     bool displayConnected; // Track if display is actually connected
     
+    ClassicLayout<Driver> classicLayout;
+    IDisplayLayout<Driver>* currentLayout;
+
     static const uint8_t SCREEN_WIDTH = 128;
     static const uint8_t SCREEN_HEIGHT = 32;
     static const uint8_t OLED_RESET = -1; // Reset pin not used
@@ -91,5 +104,5 @@ private:
     void drawBluetoothStatus(); // Draw Bluetooth connection status icon
     void drawBatteryStatus(); // Draw battery status with 3-segment indicator
 };
+using OledDisplay = Display<Ssd1306Driver>;
 
-#endif

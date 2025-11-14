@@ -107,7 +107,7 @@ AsyncWebServer server(80);
  * Response: {"weight":45.23,"flowrate":2.15}
  */
 
-void setupWebServer(Scale &scale, FlowRate &flowRate, BluetoothScale &bluetoothScale, Display &display, BatteryMonitor &battery) {
+void setupWebServer(Scale &scale, FlowRate &flowRate, BluetoothScale &bluetoothScale, OledDisplay &display, BatteryMonitor &battery) {
   if (!LittleFS.begin()) {
     Serial.println();
     Serial.println("=====================================");

@@ -531,7 +531,7 @@ void BluetoothScale::setScale(Scale* scaleInstance) {
     Serial.println("BluetoothScale: Scale reference set");
 }
 
-void BluetoothScale::setDisplay(Display* displayInstance) {
+void BluetoothScale::setDisplay(OledDisplay* displayInstance) {
     display = displayInstance;
     Serial.println("BluetoothScale: Display reference set");
 }

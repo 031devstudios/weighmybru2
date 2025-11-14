@@ -9,15 +9,18 @@
 #include "Fonts/FreeSerifBold24pt7b.h"
 #include "Fonts/FreeSans12pt7b.h"
 
-Display::Display(uint8_t sdaPin, uint8_t sclPin, Scale* scale, FlowRate* flowRate)
+template<typename Driver>
+Display<Driver>::Display(uint8_t sdaPin, uint8_t sclPin, Scale* scale, FlowRate* flowRate)
     : sdaPin(sdaPin), sclPin(sclPin), scalePtr(scale), flowRatePtr(flowRate), bluetoothPtr(nullptr), powerManagerPtr(nullptr), batteryPtr(nullptr), wifiManagerPtr(nullptr),
       messageStartTime(0), messageDuration(2000), showingMessage(false), 
       timerStartTime(0), timerPausedTime(0), timerRunning(false), timerPaused(false),
-      lastFlowRate(0.0), showingStatusPage(false), statusPageStartTime(0) {
+      lastFlowRate(0.0), showingStatusPage(false), statusPageStartTime(0), display(nullptr),
+      currentLayout(&classicLayout)  {
     display = new Ssd1306Driver(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 }
 
-bool Display::begin() {
+template<typename Driver>
+bool Display<Driver>::begin() {
     Serial.println("Initializing display...");
     
     // Initialize I2C with custom pins
@@ -104,7 +107,8 @@ bool Display::begin() {
     return true;
 }
 
-void Display::setupDisplay() {
+template<typename Driver>
+void Display<Driver>::setupDisplay() {
     // Return early if display is not connected
     if (!displayConnected) {
         return;
@@ -115,7 +119,8 @@ void Display::setupDisplay() {
     display->cp437(true); // Use full 256 char 'Code Page 437' font
 }
 
-void Display::update() {
+template<typename Driver>
+void Display<Driver>::update() {
     // Return early if display is not connected
     if (!displayConnected) {
         return;
@@ -152,7 +157,8 @@ void Display::update() {
     }
 }
 
-void Display::showWeight(float weight) {
+template<typename Driver>
+void Display<Driver>::showWeight(float weight) {
     // Return early if display is not connected
     if (!displayConnected) {
         return;
@@ -164,7 +170,8 @@ void Display::showWeight(float weight) {
     showWeightWithFlowAndTimer(weight);
 }
 
-void Display::showMessage(const String& message, int duration) {
+template<typename Driver>
+void Display<Driver>::showMessage(const String& message, int duration) {
     // Return early if display is not connected
     if (!displayConnected) {
         return;
@@ -199,7 +206,8 @@ void Display::showMessage(const String& message, int duration) {
     }
 }
 
-void Display::showSleepCountdown(int seconds) {
+template<typename Driver>
+void Display<Driver>::showSleepCountdown(int seconds) {
     // Return early if display is not connected
     if (!displayConnected) {
         return;
@@ -244,7 +252,8 @@ void Display::showSleepCountdown(int seconds) {
     display->display();
 }
 
-void Display::showSleepMessage() {
+template<typename Driver>
+void Display<Driver>::showSleepMessage() {
     // Return early if display is not connected
     if (!displayConnected) {
         return;
@@ -286,7 +295,8 @@ void Display::showSleepMessage() {
     display->display();
 }
 
-void Display::showGoingToSleepMessage() {
+template<typename Driver>
+void Display<Driver>::showGoingToSleepMessage() {
     // Return early if display is not connected
     if (!displayConnected) {
         return;
@@ -332,7 +342,8 @@ void Display::showGoingToSleepMessage() {
     display->display();
 }
 
-void Display::showSleepCancelledMessage() {
+template<typename Driver>
+void Display<Driver>::showSleepCancelledMessage() {
     // Return early if display is not connected
     if (!displayConnected) {
         return;
@@ -378,7 +389,8 @@ void Display::showSleepCancelledMessage() {
     display->display();
 }
 
-void Display::showTaringMessage() {
+template<typename Driver>
+void Display<Driver>::showTaringMessage() {
     // Return early if display is not connected
     if (!displayConnected) {
         return;
@@ -425,7 +437,8 @@ void Display::showTaringMessage() {
     display->display();
 }
 
-void Display::showTaredMessage() {
+template<typename Driver>
+void Display<Driver>::showTaredMessage() {
     // Return early if display is not connected
     if (!displayConnected) {
         return;
@@ -471,7 +484,8 @@ void Display::showTaredMessage() {
     display->display();
 }
 
-void Display::showWiFiStatusMessage(bool isEnabled) {
+template<typename Driver>
+void Display<Driver>::showWiFiStatusMessage(bool isEnabled) {
     // Return early if display is not connected
     if (!displayConnected) {
         return;
@@ -522,13 +536,15 @@ void Display::showWiFiStatusMessage(bool isEnabled) {
     display->display();
 }
 
-void Display::clearMessageState() {
+template<typename Driver>
+void Display<Driver>::clearMessageState() {
     showingMessage = false;
     currentMessage = "";
     messageStartTime = 0;
 }
 
-void Display::showIPAddresses() {
+template<typename Driver>
+void Display<Driver>::showIPAddresses() {
     // Return early if display is not connected
     if (!displayConnected) {
         return;
@@ -570,7 +586,8 @@ void Display::showIPAddresses() {
     delay(1000); // Show ready message for 1 second, then continue to normal display
 }
 
-void Display::clear() {
+template<typename Driver>
+void Display<Driver>::clear() {
     // Return early if display is not connected
     if (!displayConnected) {
         return;
@@ -580,7 +597,8 @@ void Display::clear() {
     display->display();
 }
 
-void Display::setBrightness(uint8_t brightness) {
+template<typename Driver>
+void Display<Driver>::setBrightness(uint8_t brightness) {
     // Return early if display is not connected
     if (!displayConnected) {
         return;
@@ -591,23 +609,28 @@ void Display::setBrightness(uint8_t brightness) {
     display->ssd1306_command(brightness);
 }
 
-void Display::setBluetoothScale(BluetoothScale* bluetooth) {
+template<typename Driver>
+void Display<Driver>::setBluetoothScale(BluetoothScale* bluetooth) {
     bluetoothPtr = bluetooth;
 }
 
-void Display::setPowerManager(PowerManager* powerManager) {
+template<typename Driver>
+void Display<Driver>::setPowerManager(PowerManager* powerManager) {
     powerManagerPtr = powerManager;
 }
 
-void Display::setBatteryMonitor(BatteryMonitor* battery) {
+template<typename Driver>
+void Display<Driver>::setBatteryMonitor(BatteryMonitor* battery) {
     batteryPtr = battery;
 }
 
-void Display::setWiFiManager(WiFiManager* wifi) {
+template<typename Driver>
+void Display<Driver>::setWiFiManager(WiFiManager* wifi) {
     wifiManagerPtr = wifi;
 }
 
-void Display::drawBluetoothStatus() {
+template<typename Driver>
+void Display<Driver>::drawBluetoothStatus() {
     // Return early if display is not connected
     if (!displayConnected) {
         return;
@@ -626,7 +649,8 @@ void Display::drawBluetoothStatus() {
     }
 }
 
-void Display::drawBatteryStatus() {
+template<typename Driver>
+void Display<Driver>::drawBatteryStatus() {
     // Return early if display is not connected or no battery monitor
     if (!displayConnected || !batteryPtr) {
         return;
@@ -662,7 +686,8 @@ void Display::drawBatteryStatus() {
     }
 }
 
-void Display::drawWeight(float weight) {
+template<typename Driver>
+void Display<Driver>::drawWeight(float weight) {
     // Return early if display is not connected
     if (!displayConnected) {
         return;
@@ -739,7 +764,8 @@ void Display::showWeightWithTimer(float weight) - REMOVED FUNCTION
 Function removed as part of mode simplification - unified into showWeightWithFlowAndTimer()
 */
 
-void Display::showWeightWithFlowAndTimer(float weight) {
+template<typename Driver>
+void Display<Driver>::showWeightWithFlowAndTimer(float weight) {
     // Return early if display is not connected
     if (!displayConnected) {
         return;
@@ -749,185 +775,36 @@ void Display::showWeightWithFlowAndTimer(float weight) {
     if (showingMessage) {
         return;
     }
-    
-    // Declare variables used throughout function
-    int16_t x1, y1;
-    uint16_t w, h;
-    
-    display->clearDisplay();
-    
-    // Apply deadband to prevent flickering between 0.0g and -0.0g
-    float displayWeight = weight;
-    if (weight >= -0.1 && weight <= 0.1) {
-        displayWeight = 0.0;
+
+    if (!currentLayout) {
+        currentLayout = &classicLayout; // Fallback to classic layout if none set
     }
-    
-    // Split weight into integer and decimal parts for custom rendering
-    bool isNegative = displayWeight < 0;
-    float absWeight = abs(displayWeight);
-    int integerPart = (int)absWeight;
-    int decimalPart = (int)((absWeight - integerPart) * 10 + 0.5); // Round to 1 decimal
-    
-    // Handle carry-over when decimal part rounds to 10 (e.g., 4.95 -> 5.0)
-    if (decimalPart >= 10) {
-        integerPart += 1;
-        decimalPart = 0;
+
+    DisplayState st;
+    st.weight = weight;
+    st.flowRate = (flowRatePtr != nullptr) ? flowRatePtr->getFlowRate() : 0.0f;
+    st.timerSeconds = getTimerSeconds();
+
+    st.btConnected = (bluetoothPtr != nullptr) && bluetoothPtr->isConnected();
+
+    if (batteryPtr != nullptr) {
+        st.batteryPercent = batteryPtr->getBatteryPercentage();
+        st.batteryCritical = batteryPtr->isCriticalBattery();
     }
+
+    st.scaleConnected = (scalePtr != nullptr) && scalePtr->isHX711Connected();
+
+    st.wifiEnabled = isWiFiEnabled();
+    st.wifiConnected = (WiFi.status() == WL_CONNECTED);
+
+    currentLayout->render(*display, st);
     
-    // Draw weight with custom decimal point - positioned at left middle
-    display->setTextSize(3);
-    int weightY = 5; // Middle of 32-pixel screen (size 3 text is ~21px tall, so (32-21)/2 ≈ 5)
-    display->setCursor(0, weightY);
-    
-    // Draw negative sign if needed
-    int currentX = 0;
-    if (isNegative) {
-        display->print("-");
-        // Calculate width of "-" in size 3
-        display->getTextBounds("-", 0, 0, &x1, &y1, &w, &h);
-        currentX += w;
-    }
-    
-    // Draw integer part in size 3
-    String intStr = String(integerPart);
-    display->setCursor(currentX, weightY);
-    display->print(intStr);
-    
-    // Calculate position after integer part
-    display->getTextBounds(intStr, 0, 0, &x1, &y1, &w, &h);
-    currentX += w;
-    
-    // Draw smaller decimal point (size 1) positioned to align with baseline
-    display->setTextSize(1);
-    display->setCursor(currentX, weightY + 11); // Offset from weight baseline for alignment
-    display->print(".");
-    display->getTextBounds(".", 0, 0, &x1, &y1, &w, &h);
-    currentX += w;
-    
-    // Draw decimal digit in size 2 for better readability
-    display->setTextSize(2);
-    display->setCursor(currentX, weightY + 3); // Positioned relative to weight baseline
-    display->print(String(decimalPart));
-    
-    // Right side: Timer and flow rate stacked (size 2)
-    display->setTextSize(2);
-    
-    // Get timer value and format without "s"
-    float currentTime = getTimerSeconds();
-    
-    // Get flow rate and format without "g/s"
-    float currentFlowRate = 0.0;
-    if (flowRatePtr != nullptr) {
-        currentFlowRate = flowRatePtr->getFlowRate();
-    }
-    
-    // Apply deadband to flow rate
-    float displayFlowRate = currentFlowRate;
-    if (currentFlowRate >= -0.1 && currentFlowRate <= 0.1) {
-        displayFlowRate = 0.0;
-    }
-    
-    // === CUSTOM TIMER RENDERING (like weight) ===
-    bool timerNegative = currentTime < 0;
-    float absTimer = abs(currentTime);
-    int timerInteger = (int)absTimer;
-    int timerDecimal = (int)((absTimer - timerInteger) * 10 + 0.5);
-    
-    // Handle timer carry-over
-    if (timerDecimal >= 10) {
-        timerInteger += 1;
-        timerDecimal = 0;
-    }
-    
-    // Calculate timer position with "T" label at far right
-    display->setTextSize(2);
-    String timerIntStr = String(timerInteger);
-    if (timerNegative) timerIntStr = "-" + timerIntStr;
-    
-    uint16_t timerIntWidth, timerDecWidth, timerH, timerLabelWidth;
-    display->getTextBounds(timerIntStr, 0, 0, &x1, &y1, &timerIntWidth, &timerH);
-    display->setTextSize(1);
-    display->getTextBounds("T", 0, 0, &x1, &y1, &timerLabelWidth, &timerH);
-    display->getTextBounds(".", 0, 0, &x1, &y1, &w, &timerH);
-    uint16_t timerDotWidth = w;
-    display->getTextBounds(String(timerDecimal), 0, 0, &x1, &y1, &timerDecWidth, &timerH);
-    
-    // Position "T" at far right, numbers to the left
-    int timerLabelX = SCREEN_WIDTH - timerLabelWidth;
-    int timerStartX = timerLabelX - timerIntWidth - timerDotWidth - timerDecWidth;
-    
-    // Draw timer integer part (size 2)
-    display->setTextSize(2);
-    display->setCursor(timerStartX, 0);
-    display->print(timerIntStr);
-    
-    // Draw timer decimal point (size 1)
-    display->setTextSize(1);
-    display->setCursor(timerStartX + timerIntWidth, 7); // Aligned with size 2 baseline
-    display->print(".");
-    
-    // Draw timer decimal digit (size 1)
-    display->setCursor(timerStartX + timerIntWidth + timerDotWidth, 7);
-    display->print(String(timerDecimal));
-    
-    // Draw "T" label at far right (size 1)
-    display->setTextSize(1);
-    display->setCursor(timerLabelX, 0); // Far right position
-    display->print("T");
-    
-    // === CUSTOM FLOW RATE RENDERING (like weight) ===
-    bool flowNegative = displayFlowRate < 0;
-    float absFlow = abs(displayFlowRate);
-    int flowInteger = (int)absFlow;
-    int flowDecimal = (int)((absFlow - flowInteger) * 10 + 0.5);
-    
-    // Handle flow rate carry-over
-    if (flowDecimal >= 10) {
-        flowInteger += 1;
-        flowDecimal = 0;
-    }
-    
-    // Calculate flow rate position with "F" label at far right
-    display->setTextSize(2);
-    String flowIntStr = String(flowInteger);
-    if (flowNegative) flowIntStr = "-" + flowIntStr;
-    
-    uint16_t flowIntWidth, flowDecWidth, flowH, flowLabelWidth;
-    display->getTextBounds(flowIntStr, 0, 0, &x1, &y1, &flowIntWidth, &flowH);
-    display->setTextSize(1);
-    display->getTextBounds("F", 0, 0, &x1, &y1, &flowLabelWidth, &flowH);
-    display->getTextBounds(".", 0, 0, &x1, &y1, &w, &flowH);
-    uint16_t flowDotWidth = w;
-    display->getTextBounds(String(flowDecimal), 0, 0, &x1, &y1, &flowDecWidth, &flowH);
-    
-    // Position "F" at far right, numbers to the left
-    int flowLabelX = SCREEN_WIDTH - flowLabelWidth;
-    int flowStartX = flowLabelX - flowIntWidth - flowDotWidth - flowDecWidth;
-    
-    // Draw flow rate integer part (size 2)
-    display->setTextSize(2);
-    display->setCursor(flowStartX, 16); // Below timer
-    display->print(flowIntStr);
-    
-    // Draw flow rate decimal point (size 1)
-    display->setTextSize(1);
-    display->setCursor(flowStartX + flowIntWidth, 23); // Aligned with size 2 baseline
-    display->print(".");
-    
-    // Draw flow rate decimal digit (size 1)
-    display->setCursor(flowStartX + flowIntWidth + flowDotWidth, 23);
-    display->print(String(flowDecimal));
-    
-    // Draw "F" label at far right (size 1)
-    display->setTextSize(1);
-    display->setCursor(flowLabelX, 16); // Far right position, below timer
-    display->print("F");
-    
-    display->display();
+  
 }
 
 // Timer management methods
-void Display::startTimer() {
+template<typename Driver>
+void Display<Driver>::startTimer() {
     if (!timerRunning) {
         // Fresh start
         timerStartTime = millis();
@@ -951,7 +828,8 @@ void Display::startTimer() {
     // If timer is already running and not paused, do nothing
 }
 
-void Display::stopTimer() {
+template<typename Driver>
+void Display<Driver>::stopTimer() {
     if (timerRunning && !timerPaused) {
         timerPausedTime = millis() - timerStartTime;
         timerPaused = true;
@@ -963,7 +841,8 @@ void Display::stopTimer() {
     }
 }
 
-void Display::resetTimer() {
+template<typename Driver>
+void Display<Driver>::resetTimer() {
     timerStartTime = 0;
     timerPausedTime = 0;
     timerRunning = false;
@@ -975,11 +854,13 @@ void Display::resetTimer() {
     }
 }
 
-bool Display::isTimerRunning() const {
+template<typename Driver>
+bool Display<Driver>::isTimerRunning() const {
     return timerRunning && !timerPaused;
 }
 
-float Display::getTimerSeconds() const {
+template<typename Driver>
+float Display<Driver>::getTimerSeconds() const {
     if (!timerRunning) {
         return 0.0;
     } else if (timerPaused) {
@@ -989,7 +870,8 @@ float Display::getTimerSeconds() const {
     }
 }
 
-void Display::showStatusPage() {
+template<typename Driver>
+void Display<Driver>::showStatusPage() {
     // Return early if display is not connected
     if (!displayConnected) {
         return;
@@ -1050,7 +932,8 @@ void Display::showStatusPage() {
     display->display();
 }
 
-void Display::toggleStatusPage() {
+template<typename Driver>
+void Display<Driver>::toggleStatusPage() {
     showingStatusPage = !showingStatusPage;
     if (showingStatusPage) {
         statusPageStartTime = millis();
@@ -1061,7 +944,8 @@ void Display::toggleStatusPage() {
     }
 }
 
-unsigned long Display::getElapsedTime() const {
+template<typename Driver>
+unsigned long Display<Driver>::getElapsedTime() const {
     if (!timerRunning) {
         return 0;
     } else if (timerPaused) {
@@ -1070,3 +954,5 @@ unsigned long Display::getElapsedTime() const {
         return millis() - timerStartTime;
     }
 }
+
+template class Display<Ssd1306Driver>;
