@@ -1,9 +1,10 @@
-#ifndef DISPLAY_H
-#define DISPLAY_H
+#pragma once
 
 #include <Wire.h>
-#include <Adafruit_GFX.h>
-#include <Adafruit_SSD1306.h>
+#include "config.h"
+#include "Ssd1306Driver.h" 
+#include "Sh1106Driver.h"
+#include "DisplayLayout.h"
 
 class Scale; // Forward declaration
 class FlowRate; // Forward declaration
@@ -11,6 +12,7 @@ class BluetoothScale; // Forward declaration
 class PowerManager; // Forward declaration
 class BatteryMonitor; // Forward declaration
 
+template<typename Driver>
 class Display {
 public:
     Display(uint8_t sdaPin, uint8_t sclPin, Scale* scale, FlowRate* flowRate);
@@ -52,7 +54,13 @@ public:
     bool isTimerRunning() const;
     float getTimerSeconds() const;
     unsigned long getElapsedTime() const; // Get current elapsed time in milliseconds
-    
+
+    void setLayout(IDisplayLayout<Driver>* layout) {
+        if (layout) {
+            currentLayout = layout;
+        }
+    }
+
 private:
     uint8_t sdaPin;
     uint8_t sclPin;
@@ -62,11 +70,19 @@ private:
     PowerManager* powerManagerPtr;
     BatteryMonitor* batteryPtr;
     class WiFiManager* wifiManagerPtr;
-    Adafruit_SSD1306* display;
+    Driver* display;
+    #if DISPLAY_HEIGHT == DISPLAY_HEIGHT_32
+        ClassicLayout32<Driver> classicLayout;
+    #elif DISPLAY_HEIGHT == DISPLAY_HEIGHT_64
+        ClassicLayout64<Driver> classicLayout;
+    #else
+    #error "Unsupported DISPLAY_HEIGHT"
+    #endif
+
     bool displayConnected; // Track if display is actually connected
     
-    static const uint8_t SCREEN_WIDTH = 128;
-    static const uint8_t SCREEN_HEIGHT = 32;
+    IDisplayLayout<Driver>* currentLayout;
+
     static const uint8_t OLED_RESET = -1; // Reset pin not used
     static const uint8_t SCREEN_ADDRESS = 0x3C; // Common I2C address for SSD1306
     
@@ -93,5 +109,10 @@ private:
     void drawBluetoothStatus(); // Draw Bluetooth connection status icon
     void drawBatteryStatus(); // Draw battery status with 3-segment indicator
 };
-
+#if DISPLAY_CONTROLLER == DISPLAY_CONTROLLER_SSD1306
+using OledDisplay = Display<Ssd1306Driver>;
+#elif DISPLAY_CONTROLLER == DISPLAY_CONTROLLER_SH1106
+using OledDisplay = Display<Sh1106Driver>;
+#else
+#error "Unsupported DISPLAY_CONTROLLER value"
 #endif

@@ -3,18 +3,17 @@
 
 #include <Arduino.h>
 #include <esp_sleep.h>
-
-class Display; // Forward declaration
+#include "Display.h"  
 
 class PowerManager {
 public:
-    PowerManager(uint8_t sleepTouchPin, Display* display = nullptr);
+    PowerManager(uint8_t sleepTouchPin, OledDisplay* display = nullptr);
     void begin();
     void update();
     void enterDeepSleep();
     void setSleepTouchThreshold(uint16_t threshold);
     bool isSleepTouchPressed();
-    void setDisplay(Display* display);
+    void setDisplay(OledDisplay* display);
     
     // Timer control for TIME mode
     void handleTimerControl();
@@ -22,7 +21,7 @@ public:
     
 private:
     uint8_t sleepTouchPin;
-    Display* displayPtr;
+    OledDisplay* displayPtr;
     uint16_t sleepTouchThreshold;
     bool lastSleepTouchState;
     unsigned long lastSleepTouchTime;

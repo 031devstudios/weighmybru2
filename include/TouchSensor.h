@@ -2,9 +2,9 @@
 #define TOUCHSENSOR_H
 
 #include <Arduino.h>
+#include <Display.h>
 
 class Scale; // Forward declaration
-class Display; // Forward declaration
 class FlowRate; // Forward declaration
 
 class TouchSensor {
@@ -15,13 +15,13 @@ public:
     void setTouchThreshold(uint16_t threshold);
     uint16_t getTouchValue();
     bool isTouched();
-    void setDisplay(Display* display); // Set display reference
+    void setDisplay(OledDisplay* display); // Set display reference
     void setFlowRate(FlowRate* flowRate); // Set flow rate reference
     
 private:
     uint8_t touchPin;
     Scale* scalePtr;
-    Display* displayPtr;
+    OledDisplay* displayPtr;
     FlowRate* flowRatePtr;
     uint16_t touchThreshold;
     bool lastTouchState;

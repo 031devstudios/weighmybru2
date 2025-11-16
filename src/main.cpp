@@ -27,7 +27,7 @@ Scale scale(dataPin, clockPin, calibrationFactor);
 FlowRate flowRate;
 BluetoothScale bluetoothScale;
 TouchSensor touchSensor(touchPin, &scale);
-Display oledDisplay(sdaPin, sclPin, &scale, &flowRate);
+OledDisplay oledDisplay(sdaPin, sclPin, &scale, &flowRate);
 PowerManager powerManager(sleepTouchPin, &oledDisplay);
 BatteryMonitor batteryMonitor(batteryPin);
 

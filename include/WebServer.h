@@ -9,7 +9,7 @@
 
 extern float calibrationFactor;
 
-void setupWebServer(Scale &scale, FlowRate &flowRate, BluetoothScale &bluetoothScale, Display &display, BatteryMonitor &battery);
+void setupWebServer(Scale &scale, FlowRate &flowRate, BluetoothScale &bluetoothScale, OledDisplay &display, BatteryMonitor &battery);
 void startWebServer();
 void stopWebServer();
 
