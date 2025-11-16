@@ -1,5 +1,6 @@
 #include "PowerManager.h"
 #include "Display.h"
+#include <esp_pm.h>
 
 PowerManager::PowerManager(uint8_t sleepTouchPin, Display* display) 
     : sleepTouchPin(sleepTouchPin), displayPtr(display), sleepTouchThreshold(0),
@@ -116,7 +117,12 @@ void PowerManager::enterDeepSleep() {
     
     // Flush serial output
     Serial.flush();
-    
+    esp_pm_config_t pm_config = {
+      .max_freq_mhz = 240, // Maximum CPU frequency when needed
+      .min_freq_mhz = 80,  // Minimum CPU frequency when idle
+      .light_sleep_enable = false // Enable automatic light sleep
+    };
+    ESP_ERROR_CHECK(esp_pm_configure(&pm_config));
     // Enter deep sleep - will wake up on external signal
     esp_deep_sleep_start();
 }

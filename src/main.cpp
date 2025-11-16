@@ -1,9 +1,10 @@
 #include <WiFi.h>
+#include "WebServer.h"
+#include "WebServer.h"
 #include <ESPAsyncWebServer.h>
 #include <LittleFS.h>
 #include <ESPmDNS.h>
 #include <esp_sleep.h>
-#include "WebServer.h"
 #include "Scale.h"
 #include "WiFiManager.h"
 #include "FlowRate.h"
@@ -13,6 +14,8 @@
 #include "Display.h"
 #include "PowerManager.h"
 #include "BatteryMonitor.h"
+#include <FreeRTOS.h>
+#include <esp_pm.h>
 
 // Pins and calibration
 uint8_t dataPin = 5;   // HX711 Data pin (moved from 12)
@@ -30,7 +33,70 @@ TouchSensor touchSensor(touchPin, &scale);
 Display oledDisplay(sdaPin, sclPin, &scale, &flowRate);
 PowerManager powerManager(sleepTouchPin, &oledDisplay);
 BatteryMonitor batteryMonitor(batteryPin);
+void uiUpdate(void * parameter){
+  TickType_t lastTick = xTaskGetTickCount();
+  for(;;){
+    touchSensor.update();
+    powerManager.update();
+    batteryMonitor.update();
+    oledDisplay.update();
+    xTaskDelayUntil(&lastTick, 25 / portTICK_PERIOD_MS);
+  }
+}
 
+
+
+void weightUpdate(void * parameter){
+  TickType_t lastTick = xTaskGetTickCount();
+  for(;;){
+    float weight = scale.getWeight();
+    flowRate.update(weight);
+    xTaskDelayUntil(&lastTick, 50 / portTICK_PERIOD_MS);
+  }
+}
+void bleUpdate(void * parameter){
+  TickType_t lastTick = xTaskGetTickCount();
+  for(;;){
+    bluetoothScale.update();
+    xTaskDelayUntil(&lastTick, 50 / portTICK_PERIOD_MS);
+  }
+}
+void checkWiFiStatus(void * parameter){
+  TickType_t lastTick = xTaskGetTickCount();
+  for(;;){
+    float weight = scale.getWeight();
+    flowRate.update(weight);
+    xTaskDelayUntil(&lastTick, 50 / portTICK_PERIOD_MS);
+  }
+}
+
+void TaskLog(void *pvParameters) {
+    static const int statsBufferSize = 1024;
+    static char statsBuffer[statsBufferSize];
+
+    static const int listBufferSize = 1024;
+    static char listBuffer[listBufferSize];
+
+    while (true) {
+        Serial.println("\n============ Task Stats ============");
+
+        // Get runtime stats for CPU usage
+        // This requires configGENERATE_RUN_TIME_STATS to be enabled
+        vTaskGetRunTimeStats(statsBuffer);
+        Serial.println("Run Time Stats:");
+        Serial.println(statsBuffer);
+
+        // Get task list with state, priority, stack, and task number
+        // Note: vTaskList output depends on configuration and may not include core affinities by default
+        // vTaskList(listBuffer);
+        // Serial.println("Task List:");
+        // Serial.println(listBuffer);
+
+        // Serial.println("=====================================");
+
+        vTaskDelay(5000 / portTICK_PERIOD_MS);
+    }
+} 
 void setup() {
   Serial.begin(115200);
   
@@ -165,48 +231,63 @@ void setup() {
   touchSensor.setFlowRate(&flowRate);
 
   setupWebServer(scale, flowRate, bluetoothScale, oledDisplay, batteryMonitor);
+  xTaskCreate (
+    weightUpdate,
+    "Weight upd",
+    10000,
+    NULL,
+    1,
+    NULL
+  );
+  xTaskCreate (
+    bleUpdate,
+    "Update Bt",
+    10000,
+    NULL,
+    1,
+    NULL
+  );
+  
+  xTaskCreate (
+    printWiFiStatus,
+    "WiFi state",
+    10000,
+    NULL,
+    1,
+    NULL
+  );
+  xTaskCreate (
+    maintainWiFi,
+    "WiFi Health",
+    10000,
+    NULL,
+    1,
+    NULL
+  );
+   xTaskCreate (
+    uiUpdate,
+    "UI update",
+    10000,
+    NULL,
+    1,
+    NULL
+  );
+  // xTaskCreate(
+  //       TaskLog,     // Функция задачи
+  //       "Log",       // Имя задачи
+  //       2048,        // Увеличили размер стека для доп. вычислений
+  //       NULL,        // Параметры задачи
+  //       1,           // Приоритет задачи
+  //       NULL
+  //   );
+
+  esp_pm_config_t pm_config = {
+      .max_freq_mhz = 240, // Maximum CPU frequency when needed
+      .min_freq_mhz = 80,  // Minimum CPU frequency when idle
+      .light_sleep_enable = true // Enable automatic light sleep
+  };
+  ESP_ERROR_CHECK(esp_pm_configure(&pm_config));
 }
 
-void loop() {
-  static unsigned long lastWeightUpdate = 0;
-  static unsigned long lastWiFiCheck = 0;
-  
-  // Update weight at optimal frequency for brewing accuracy
-  if (millis() - lastWeightUpdate >= 20) { // Update every 20ms (50Hz) - still very responsive
-    float weight = scale.getWeight();
-    flowRate.update(weight);
-    lastWeightUpdate = millis();
-  }
-  
-  static unsigned long lastBLEUpdate = 0;
-  
-  // Check WiFi status every 30 seconds for debugging
-  if (millis() - lastWiFiCheck >= 30000) {
-    printWiFiStatus();
-    lastWiFiCheck = millis();
-  }
-  
-  // Maintain WiFi AP stability
-  maintainWiFi();
-  
-  // Update Bluetooth less frequently to reduce BLE interference
-  if (millis() - lastBLEUpdate >= 50) { // Update every 50ms (20Hz) - sufficient for app responsiveness
-    bluetoothScale.update();
-    lastBLEUpdate = millis();
-  }
-  
-  // Update touch sensor
-  touchSensor.update();
-  
-  // Update power manager
-  powerManager.update();
-  
-  // Update battery monitor
-  batteryMonitor.update();
-  
-  // Update display
-  oledDisplay.update();
-  
-  // Balanced delay for responsive readings without system overload
-  delay(25); // Increased from 5ms to 25ms to reduce BLE interference and system load
-}
+// void loop() {}
+void loop() {vTaskDelay(100);}

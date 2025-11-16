@@ -98,8 +98,8 @@ void BluetoothScale::initializeBLE() {
     Serial.printf("BluetoothScale: Free heap at start: %u bytes\n", ESP.getFreeHeap());
     
     // Reduce BLE power consumption during initialization to prevent voltage sag
-    esp_ble_tx_power_set(ESP_BLE_PWR_TYPE_ADV, ESP_PWR_LVL_N0);      // Moderate advertising power (0dBm)
-    esp_ble_tx_power_set(ESP_BLE_PWR_TYPE_CONN_HDL0, ESP_PWR_LVL_N0); // Moderate connection power (0dBm)
+    // esp_ble_tx_power_set(ESP_BLE_PWR_TYPE_ADV, ESP_PWR_LVL_N0);      // Moderate advertising power (0dBm)
+    // esp_ble_tx_power_set(ESP_BLE_PWR_TYPE_CONN_HDL0, ESP_PWR_LVL_N0); // Moderate connection power (0dBm)
     
     // Initialize BLE Device with WeighMyBru name - this handles the low-level BLE stack
     NimBLEDevice::init("WeighMyBru");
@@ -194,12 +194,12 @@ void BluetoothScale::initializeBLE() {
     advertising->addServiceUUID(SERVICE_UUID);
     
     // Enable scan response to allow full device name in advertising
-    advertising->setScanResponse(true);
+    advertising->enableScanResponse(true);
     
     // Explicitly set the advertising name to ensure full "WeighMyBru" appears
     advertising->setName("WeighMyBru");
     
-    advertising->setMinPreferred(0x0);
+    advertising->setPreferredParams(0x0, 0x0);
     
     Serial.println("BluetoothScale: BLE initialization completed successfully");
 }
@@ -497,19 +497,19 @@ void BluetoothScale::processIncomingMessage(uint8_t* data, size_t length) {
 }
 
 // BLE Server Callbacks
-void BluetoothScale::onConnect(NimBLEServer* pServer) {
+void BluetoothScale::onConnect(NimBLEServer* pServer, NimBLEConnInfo& connInfo) {
     deviceConnected = true;
     NimBLEDevice::stopAdvertising();
     Serial.println("BluetoothScale: Device connected");
 }
 
-void BluetoothScale::onDisconnect(NimBLEServer* pServer) {
+void BluetoothScale::onDisconnect(NimBLEServer* pServer, NimBLEConnInfo& connInfo, int reason) {
     deviceConnected = false;
     Serial.println("BluetoothScale: Device disconnected");
 }
 
 // BLE Characteristic Callbacks
-void BluetoothScale::onWrite(NimBLECharacteristic* pCharacteristic) {
+void BluetoothScale::onWrite(NimBLECharacteristic* pCharacteristic, NimBLEConnInfo& connInfo) {
     std::string value = pCharacteristic->getValue();
     
     if (value.length() > 0) {

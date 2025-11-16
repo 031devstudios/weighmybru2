@@ -3,6 +3,7 @@
 #include <Preferences.h>
 #include <ESPmDNS.h>
 #include "WebServer.h"  // For web server control
+#include <FreeRTOS.h>
 
 // ESP-IDF includes for advanced WiFi power management (SuperMini antenna fix)
 #ifdef ESP_IDF_VERSION_MAJOR
@@ -304,7 +305,9 @@ void setupmDNS() {
     }
 }
 
-void printWiFiStatus() {
+void printWiFiStatus(void * parameter) {
+    TickType_t lastStatusUpdate = xTaskGetTickCount();
+    for(;;){
     Serial.println("=== WiFi Status ===");
     Serial.println("WiFi Mode: " + String(WiFi.getMode()));
     Serial.println("AP Status: " + String(WiFi.softAPgetStationNum()) + " clients connected");
@@ -317,19 +320,19 @@ void printWiFiStatus() {
     }
     Serial.println("WiFi Sleep: " + String(WiFi.getSleep() ? "ON" : "OFF"));
     Serial.println("==================");
+        vTaskDelay(30000 / portTICK_PERIOD_MS);
+        // xTaskDelayUntil(&lastStatusUpdate, 30000 / portTICK_PERIOD_MS);
+    }
 }
 
-void maintainWiFi() {
+void maintainWiFi(void * parameter) {
     // Skip maintenance if WiFi is disabled
-    if (!isWiFiEnabled()) {
-        return;
-    }
-    
-    static unsigned long lastMaintenance = 0;
-    const unsigned long maintenanceInterval = 15000; // Every 15 seconds for more responsive switching
-    
-    if (millis() - lastMaintenance >= maintenanceInterval) {
-        lastMaintenance = millis();
+    TickType_t lastMaintenance = xTaskGetTickCount();
+    // const TickType_t maintenanceInterval = ; // Every 15 seconds for more responsive switching
+    for(;;){
+        if (isWiFiEnabled()) {     
+        // if (millis() - lastMaintenance >= maintenanceInterval) {
+            // lastMaintenance = millis();
         
         // Check current WiFi mode and connection health
         wifi_mode_t currentMode = WiFi.getMode();
@@ -392,6 +395,8 @@ void maintainWiFi() {
         // Print status for debugging
         Serial.println("WiFi maintenance check completed");
     }
+        xTaskDelayUntil(&lastMaintenance, 15000/portTICK_PERIOD_MS);
+    }    
 }
 
 // Function to attempt STA connection with new credentials and switch from AP mode
