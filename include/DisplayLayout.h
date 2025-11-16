@@ -34,7 +34,7 @@ public:
     void render(Driver& display, const DisplayState& st) override {
         display.clearDisplay();
         display.setTextColor(WHITE);
-        display.setTextSize(1);  // przy GFX-fontach skala zawsze 1
+        display.setTextSize(1); 
 
         // ================== WEIGHT ==================
         float displayWeight = st.weight;
@@ -45,18 +45,19 @@ public:
         bool weightNegative = (displayWeight < 0.0f);
         float absWeight = fabs(displayWeight);
         int weightInteger = static_cast<int>(absWeight);
-        int weightDecimal = static_cast<int>((absWeight - weightInteger) * 100.0f + 0.5f); // 2 miejsca
+        int weightDecimal = static_cast<int>((absWeight - weightInteger) * 10.0f + 0.5f);
 
-        if (weightDecimal >= 100) {
+
+        if (weightDecimal >= 10) {
             weightInteger += 1;
             weightDecimal = 0;
         }
 
         char weightBuf[16];
         if (weightNegative) {
-            snprintf(weightBuf, sizeof(weightBuf), "-%d.%02d", weightInteger, weightDecimal);
+            snprintf(weightBuf, sizeof(weightBuf), "-%d.%01d", weightInteger, weightDecimal);
         } else {
-            snprintf(weightBuf, sizeof(weightBuf), "%d.%02d", weightInteger, weightDecimal);
+            snprintf(weightBuf, sizeof(weightBuf), "%d.%01d", weightInteger, weightDecimal);
         }
 
         display.setFont(&FreeMonoBold18pt7b);
@@ -90,7 +91,7 @@ public:
         }
 
         display.setFont(&FreeMonoBold12pt7b);
-        display.setCursor(0, 38);   // jak w templatce
+        display.setCursor(0, 39);  
         display.print(timerBuf);
 
         // ================== FLOW (RRR.R) ==================
@@ -118,7 +119,6 @@ public:
             snprintf(flowBuf, sizeof(flowBuf), "%d.%d", flowInteger, flowDecimal);
         }
 
-        // Pasek flow rate: 0–15 g/s → 0–128 px
         float barFlow = currentFlowRate;
         if (barFlow < 0.0f) {
             barFlow = 0.0f;
@@ -136,23 +136,20 @@ public:
         }
 
         if (barWidth > 0) {
-            display.fillRect(0, 59, barWidth, 5, 1);
+            display.fillRect(0, 60, barWidth, 4, 1);
         }
-        // reszta linii i tak jest czysta po clearDisplay()
 
-        // Flow tekstowo (RRR.R) na dole
+        // FLOW TEXT + BT + WIFI
         display.setFont(&FreeMonoBold12pt7b);
-        display.setCursor(0, 56);
+        display.setCursor(0, 57);
         display.print(flowBuf);
 
-        // ================== STATUSY (BT / WI) ==================
-        // Możesz później podmienić na warunki typu if (st.bluetoothConnected) itd.
-        display.setFont(&FreeMonoBold9pt7b);
-        display.setCursor(104, 40);
-        display.println("BT");
+        // display.setFont(&FreeMonoBold9pt7b);
+        // display.setCursor(104, 40);
+        // display.println("BT");
 
-        display.setCursor(104, 54);
-        display.print("WI");
+        // display.setCursor(104, 54);
+        // display.print("WI");
 
         display.display();
     }

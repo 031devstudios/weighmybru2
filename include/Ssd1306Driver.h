@@ -37,6 +37,10 @@ public:
         oled.setTextSize(s);
     }
 
+    void setFont(const GFXfont *f) {
+        oled.setFont(f);
+    }
+
     void setTextColor(uint16_t c) {
         oled.setTextColor(c);
     }

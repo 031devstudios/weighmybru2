@@ -59,7 +59,7 @@ bool Display<Driver>::begin() {
     
     // Initialize the display
     if (!display->begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)) {
-        Serial.println("ERROR: SSD1306 initialization failed");
+        Serial.println("ERROR: Display initialization failed");
         Serial.println("Display will be disabled - running headless mode");
         displayConnected = false;
         return false;
@@ -71,6 +71,7 @@ bool Display<Driver>::begin() {
     
     // Show startup message in same format as welcome message
     display->clearDisplay();
+    display->setFont(NULL); 
     display->setTextSize(2);
     display->setTextColor(SSD1306_WHITE);
     
@@ -183,6 +184,7 @@ void Display<Driver>::showMessage(const String& message, int duration) {
     showingMessage = true;
     
     display->clearDisplay();
+    display->setFont(NULL); 
     display->setTextSize(1);
     display->setCursor(0, 0);
     
@@ -220,6 +222,7 @@ void Display<Driver>::showSleepCountdown(int seconds) {
     
     // Show countdown in same large format as WeighMyBru Ready
     display->clearDisplay();
+    display->setFont(NULL); 
     display->setTextSize(2);
     display->setTextColor(SSD1306_WHITE);
     
@@ -266,6 +269,7 @@ void Display<Driver>::showSleepMessage() {
     
     // Show sleep message with large top line and small bottom line
     display->clearDisplay();
+    display->setFont(NULL); 
     display->setTextColor(SSD1306_WHITE);
     
     // First line: "Sleep in 3" in large text (size 2)
@@ -309,6 +313,7 @@ void Display<Driver>::showGoingToSleepMessage() {
     
     // Show "Touch To / Wake Up" in same format as WeighMyBru Ready
     display->clearDisplay();
+    display->setFont(NULL); 
     display->setTextSize(2);
     display->setTextColor(SSD1306_WHITE);
     
@@ -356,6 +361,7 @@ void Display<Driver>::showSleepCancelledMessage() {
     
     // Show "Sleep / Cancelled" in same format as WeighMyBru Ready
     display->clearDisplay();
+    display->setFont(NULL); 
     display->setTextSize(2);
     display->setTextColor(SSD1306_WHITE);
     
@@ -403,6 +409,7 @@ void Display<Driver>::showTaringMessage() {
     
     // Show "Taring..." in same format as WeighMyBru Ready
     display->clearDisplay();
+    display->setFont(NULL); 
     display->setTextSize(2);
     display->setTextColor(SSD1306_WHITE);
     
@@ -451,6 +458,7 @@ void Display<Driver>::showTaredMessage() {
     
     // Show "Tared!" in same format as WeighMyBru Ready
     display->clearDisplay();
+    display->setFont(NULL); 
     display->setTextSize(2);
     display->setTextColor(SSD1306_WHITE);
     
@@ -498,6 +506,7 @@ void Display<Driver>::showWiFiStatusMessage(bool isEnabled) {
     
     // Show WiFi status in same format as WeighMyBru Ready
     display->clearDisplay();
+    display->setFont(NULL); 
     display->setTextSize(2);
     display->setTextColor(SSD1306_WHITE);
     
@@ -552,6 +561,7 @@ void Display<Driver>::showIPAddresses() {
     
     // Show the WeighMyBru Ready message for 3 seconds
     display->clearDisplay();
+    display->setFont(NULL); 
     display->setTextSize(2);
     display->setTextColor(SSD1306_WHITE);
     
@@ -594,6 +604,7 @@ void Display<Driver>::clear() {
     }
     
     display->clearDisplay();
+    display->setFont(NULL); 
     display->display();
 }
 
@@ -694,6 +705,7 @@ void Display<Driver>::drawWeight(float weight) {
     }
     
     display->clearDisplay();
+    display->setFont(NULL); 
     
     // Apply deadband to prevent flickering between 0.0g and -0.0g
     // Show 0.0g (without negative sign) when weight is between -0.1g and +0.1g
@@ -878,6 +890,7 @@ void Display<Driver>::showStatusPage() {
     }
 
     display->clearDisplay();
+    display->setFont(NULL); 
     display->setTextColor(SSD1306_WHITE);
     
     // Top line: Battery %, Scale icon, BLE icon
