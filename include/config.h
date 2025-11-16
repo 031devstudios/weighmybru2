@@ -1,7 +1,6 @@
 #pragma once
 
-static const uint8_t SCREEN_WIDTH = 128;
-static const uint8_t SCREEN_HEIGHT = 64;
+#define DISPLAY_WIDTH 128
 
 #define DISPLAY_HEIGHT_32 32
 #define DISPLAY_HEIGHT_64 64

@@ -16,7 +16,7 @@ Display<Driver>::Display(uint8_t sdaPin, uint8_t sclPin, Scale* scale, FlowRate*
       timerStartTime(0), timerPausedTime(0), timerRunning(false), timerPaused(false),
       lastFlowRate(0.0), showingStatusPage(false), statusPageStartTime(0), display(nullptr),
       classicLayout(), currentLayout(&classicLayout)  {
-    display = new Driver(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+    display = new Driver(DISPLAY_WIDTH, DISPLAY_HEIGHT, &Wire, OLED_RESET);
 }
 
 template<typename Driver>
@@ -85,8 +85,8 @@ bool Display<Driver>::begin() {
     display->getTextBounds(line2, 0, 0, &x1, &y1, &w2, &h2);
     
     // Calculate centered positions
-    int centerX1 = (SCREEN_WIDTH - w1) / 2;
-    int centerX2 = (SCREEN_WIDTH - w2) / 2;
+    int centerX1 = (DISPLAY_WIDTH - w1) / 2;
+    int centerX2 = (DISPLAY_WIDTH - w2) / 2;
     
     // Position lines to fit in 32 pixels
     int line1Y = 0;  // Start at top
@@ -234,8 +234,8 @@ void Display<Driver>::showSleepCountdown(int seconds) {
     display->getTextBounds(line2, 0, 0, &x1, &y1, &w2, &h2);
     
     // Calculate centered positions
-    int centerX1 = (SCREEN_WIDTH - w1) / 2;
-    int centerX2 = (SCREEN_WIDTH - w2) / 2;
+    int centerX1 = (DISPLAY_WIDTH - w1) / 2;
+    int centerX2 = (DISPLAY_WIDTH - w2) / 2;
     
     // Position lines to fit in 32 pixels
     int line1Y = 0;  // Start at top
@@ -275,7 +275,7 @@ void Display<Driver>::showSleepMessage() {
     int16_t x1, y1;
     uint16_t w1, h1;
     display->getTextBounds(line1, 0, 0, &x1, &y1, &w1, &h1);
-    int centerX1 = (SCREEN_WIDTH - w1) / 2;
+    int centerX1 = (DISPLAY_WIDTH - w1) / 2;
     
     display->setCursor(centerX1, 0);
     display->print(line1);
@@ -286,7 +286,7 @@ void Display<Driver>::showSleepMessage() {
     
     uint16_t w2, h2;
     display->getTextBounds(line2, 0, 0, &x1, &y1, &w2, &h2);
-    int centerX2 = (SCREEN_WIDTH - w2) / 2;
+    int centerX2 = (DISPLAY_WIDTH - w2) / 2;
     
     // Position small text at bottom (24 pixels from top gives us 8 pixels for the text)
     display->setCursor(centerX2, 24);
@@ -324,8 +324,8 @@ void Display<Driver>::showGoingToSleepMessage() {
     display->getTextBounds(line2, 0, 0, &x1, &y1, &w2, &h2);
     
     // Calculate centered positions - tighter spacing for size 2 text
-    int centerX1 = (SCREEN_WIDTH - w1) / 2;
-    int centerX2 = (SCREEN_WIDTH - w2) / 2;
+    int centerX1 = (DISPLAY_WIDTH - w1) / 2;
+    int centerX2 = (DISPLAY_WIDTH - w2) / 2;
     
     // Position lines closer together to fit in 32 pixels
     int line1Y = 0;  // Start at top
@@ -371,8 +371,8 @@ void Display<Driver>::showSleepCancelledMessage() {
     display->getTextBounds(line2, 0, 0, &x1, &y1, &w2, &h2);
     
     // Calculate centered positions - tighter spacing for size 2 text
-    int centerX1 = (SCREEN_WIDTH - w1) / 2;
-    int centerX2 = (SCREEN_WIDTH - w2) / 2;
+    int centerX1 = (DISPLAY_WIDTH - w1) / 2;
+    int centerX2 = (DISPLAY_WIDTH - w2) / 2;
     
     // Position lines closer together to fit in 32 pixels
     int line1Y = 0;  // Start at top
@@ -419,8 +419,8 @@ void Display<Driver>::showTaringMessage() {
     display->getTextBounds(line2, 0, 0, &x1, &y1, &w2, &h2);
     
     // Calculate centered positions - tighter spacing for size 2 text
-    int centerX1 = (SCREEN_WIDTH - w1) / 2;
-    int centerX2 = (SCREEN_WIDTH - w2) / 2;
+    int centerX1 = (DISPLAY_WIDTH - w1) / 2;
+    int centerX2 = (DISPLAY_WIDTH - w2) / 2;
     
     // Position lines closer together to fit in 32 pixels
     int line1Y = 0;  // Start at top
@@ -466,8 +466,8 @@ void Display<Driver>::showTaredMessage() {
     display->getTextBounds(line2, 0, 0, &x1, &y1, &w2, &h2);
     
     // Calculate centered positions - tighter spacing for size 2 text
-    int centerX1 = (SCREEN_WIDTH - w1) / 2;
-    int centerX2 = (SCREEN_WIDTH - w2) / 2;
+    int centerX1 = (DISPLAY_WIDTH - w1) / 2;
+    int centerX2 = (DISPLAY_WIDTH - w2) / 2;
     
     // Position lines closer together to fit in 32 pixels
     int line1Y = 0;  // Start at top
@@ -518,8 +518,8 @@ void Display<Driver>::showWiFiStatusMessage(bool isEnabled) {
     display->getTextBounds(line2, 0, 0, &x1, &y1, &w2, &h2);
     
     // Calculate centered positions
-    int centerX1 = (SCREEN_WIDTH - w1) / 2;
-    int centerX2 = (SCREEN_WIDTH - w2) / 2;
+    int centerX1 = (DISPLAY_WIDTH - w1) / 2;
+    int centerX2 = (DISPLAY_WIDTH - w2) / 2;
     
     // Position lines to fit in 32 pixels
     int line1Y = 0;  // Start at top
@@ -567,8 +567,8 @@ void Display<Driver>::showIPAddresses() {
     display->getTextBounds(line2, 0, 0, &x1, &y1, &w2, &h2);
     
     // Calculate centered positions - tighter spacing for size 2 text
-    int centerX1 = (SCREEN_WIDTH - w1) / 2;
-    int centerX2 = (SCREEN_WIDTH - w2) / 2;
+    int centerX1 = (DISPLAY_WIDTH - w1) / 2;
+    int centerX2 = (DISPLAY_WIDTH - w2) / 2;
     
     // Position lines closer together to fit in 32 pixels
     int line1Y = 0;  // Start at top
@@ -717,7 +717,7 @@ void Display<Driver>::drawWeight(float weight) {
     display->getTextBounds(weightStr, 0, 0, &x1, &y1, &textWidth, &textHeight);
     
     // Center the weight text horizontally
-    int centerX = (SCREEN_WIDTH - textWidth) / 2;
+    int centerX = (DISPLAY_WIDTH - textWidth) / 2;
     
     // Large weight display - centered at top
     display->setCursor(centerX, 0);

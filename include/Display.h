@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Wire.h>
+#include "config.h"
 #include "Ssd1306Driver.h" 
 #include "Sh1106Driver.h"
 #include "DisplayLayout.h"
@@ -82,8 +83,6 @@ private:
     
     IDisplayLayout<Driver>* currentLayout;
 
-    static const uint8_t SCREEN_WIDTH = 128;
-    static const uint8_t SCREEN_HEIGHT = 64;
     static const uint8_t OLED_RESET = -1; // Reset pin not used
     static const uint8_t SCREEN_ADDRESS = 0x3C; // Common I2C address for SSD1306
     

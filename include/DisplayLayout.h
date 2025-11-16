@@ -240,7 +240,7 @@ public:
     uint16_t timerDotWidth = w;
     display.getTextBounds(String(timerDecimal), 0, 0, &x1, &y1, &timerDecWidth, &timerH);
 
-    int timerLabelX = SCREEN_WIDTH - timerLabelWidth;
+    int timerLabelX = DISPLAY_WIDTH - timerLabelWidth;
     int timerStartX = timerLabelX - timerIntWidth - timerDotWidth - timerDecWidth;
 
     display.setTextSize(2);
@@ -291,7 +291,7 @@ public:
     uint16_t flowDotWidth = w;
     display.getTextBounds(String(flowDecimal), 0, 0, &x1, &y1, &flowDecWidth, &flowH);
 
-    int flowLabelX = SCREEN_WIDTH - flowLabelWidth;
+    int flowLabelX = DISPLAY_WIDTH - flowLabelWidth;
     int flowStartX = flowLabelX - flowIntWidth - flowDotWidth - flowDecWidth;
 
     display.setTextSize(2);
