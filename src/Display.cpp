@@ -15,8 +15,8 @@ Display<Driver>::Display(uint8_t sdaPin, uint8_t sclPin, Scale* scale, FlowRate*
       messageStartTime(0), messageDuration(2000), showingMessage(false), 
       timerStartTime(0), timerPausedTime(0), timerRunning(false), timerPaused(false),
       lastFlowRate(0.0), showingStatusPage(false), statusPageStartTime(0), display(nullptr),
-      currentLayout(&classicLayout)  {
-    display = new Ssd1306Driver(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+      classicLayout(), currentLayout(&classicLayout)  {
+    display = new Driver(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 }
 
 template<typename Driver>

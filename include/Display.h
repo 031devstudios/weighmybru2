@@ -2,6 +2,7 @@
 
 #include <Wire.h>
 #include "Ssd1306Driver.h" 
+#include "Sh1106Driver.h"
 #include "DisplayLayout.h"
 
 class Scale; // Forward declaration
@@ -59,8 +60,6 @@ public:
         }
     }
 
-
-    
 private:
     uint8_t sdaPin;
     uint8_t sclPin;
@@ -70,14 +69,21 @@ private:
     PowerManager* powerManagerPtr;
     BatteryMonitor* batteryPtr;
     class WiFiManager* wifiManagerPtr;
-    Ssd1306Driver* display;
+    Driver* display;
+    #if DISPLAY_HEIGHT == DISPLAY_HEIGHT_32
+        ClassicLayout32<Driver> classicLayout;
+    #elif DISPLAY_HEIGHT == DISPLAY_HEIGHT_64
+        ClassicLayout64<Driver> classicLayout;
+    #else
+    #error "Unsupported DISPLAY_HEIGHT"
+    #endif
+
     bool displayConnected; // Track if display is actually connected
     
-    ClassicLayout<Driver> classicLayout;
     IDisplayLayout<Driver>* currentLayout;
 
     static const uint8_t SCREEN_WIDTH = 128;
-    static const uint8_t SCREEN_HEIGHT = 32;
+    static const uint8_t SCREEN_HEIGHT = 64;
     static const uint8_t OLED_RESET = -1; // Reset pin not used
     static const uint8_t SCREEN_ADDRESS = 0x3C; // Common I2C address for SSD1306
     

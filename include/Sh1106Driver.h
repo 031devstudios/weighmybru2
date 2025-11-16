@@ -18,9 +18,13 @@ public:
     // API kompatybilne z Ssd1306Driver
 
     bool begin(uint8_t /*vccSource*/, uint8_t i2cAddress) {
-        // Adafruit_SH1106G nie potrzebuje vccSource, ignorujemy parametr
-        return oled.begin(i2cAddress);
+        bool ok = oled.begin(i2cAddress);
+        if (!ok) return false;    
+        oled.setRotation(2);
+        oled.clearDisplay();
+        return true;
     }
+
 
     void clearDisplay() {
         oled.clearDisplay();
@@ -36,6 +40,10 @@ public:
 
     void setTextSize(uint8_t s) {
         oled.setTextSize(s);
+    }
+
+    void setFont(const GFXfont *f) {
+        oled.setFont(f);
     }
 
     void setTextColor(uint16_t c) {

@@ -2,6 +2,9 @@
 
 #include <Arduino.h>
 #include "config.h"
+#include "Fonts/FreeMonoBold18pt7b.h"
+#include "Fonts/FreeMonoBold12pt7b.h"
+#include "Fonts/FreeMonoBold9pt7b.h"
 
 struct DisplayState {
     float weight = 0.0f;
@@ -26,7 +29,137 @@ public:
 };
 
 template<typename Driver>
-class ClassicLayout : public IDisplayLayout<Driver> {
+class ClassicLayout64 : public IDisplayLayout<Driver> {
+public:
+    void render(Driver& display, const DisplayState& st) override {
+        display.clearDisplay();
+        display.setTextColor(WHITE);
+        display.setTextSize(1);  // przy GFX-fontach skala zawsze 1
+
+        // ================== WEIGHT ==================
+        float displayWeight = st.weight;
+        if (displayWeight >= -0.1f && displayWeight <= 0.1f) {
+            displayWeight = 0.0f;
+        }
+
+        bool weightNegative = (displayWeight < 0.0f);
+        float absWeight = fabs(displayWeight);
+        int weightInteger = static_cast<int>(absWeight);
+        int weightDecimal = static_cast<int>((absWeight - weightInteger) * 100.0f + 0.5f); // 2 miejsca
+
+        if (weightDecimal >= 100) {
+            weightInteger += 1;
+            weightDecimal = 0;
+        }
+
+        char weightBuf[16];
+        if (weightNegative) {
+            snprintf(weightBuf, sizeof(weightBuf), "-%d.%02d", weightInteger, weightDecimal);
+        } else {
+            snprintf(weightBuf, sizeof(weightBuf), "%d.%02d", weightInteger, weightDecimal);
+        }
+
+        display.setFont(&FreeMonoBold18pt7b);
+        display.setCursor(0, 22);   // jak w templatce
+        display.print(weightBuf);
+
+        // ================== TIMER (M:SS.d) ==================
+        float currentTime = st.timerSeconds;
+        bool timerNegative = (currentTime < 0.0f);
+        float absTimer = fabs(currentTime);
+
+        int totalSeconds = static_cast<int>(absTimer);
+        int minutes = totalSeconds / 60;
+        int seconds = totalSeconds % 60;
+        int tenths = static_cast<int>((absTimer - totalSeconds) * 10.0f + 0.5f);
+
+        if (tenths >= 10) {
+            tenths = 0;
+            seconds += 1;
+            if (seconds >= 60) {
+                seconds = 0;
+                minutes += 1;
+            }
+        }
+
+        char timerBuf[16];
+        if (timerNegative) {
+            snprintf(timerBuf, sizeof(timerBuf), "-%d:%02d.%d", minutes, seconds, tenths);
+        } else {
+            snprintf(timerBuf, sizeof(timerBuf), "%d:%02d.%d", minutes, seconds, tenths);
+        }
+
+        display.setFont(&FreeMonoBold12pt7b);
+        display.setCursor(0, 38);   // jak w templatce
+        display.print(timerBuf);
+
+        // ================== FLOW (RRR.R) ==================
+        float currentFlowRate = st.flowRate;
+
+        float displayFlowRate = currentFlowRate;
+        if (displayFlowRate >= -0.1f && displayFlowRate <= 0.1f) {
+            displayFlowRate = 0.0f;
+        }
+
+        bool flowNegative = (displayFlowRate < 0.0f);
+        float absFlow = fabs(displayFlowRate);
+        int flowInteger = static_cast<int>(absFlow);
+        int flowDecimal = static_cast<int>((absFlow - flowInteger) * 10.0f + 0.5f);
+
+        if (flowDecimal >= 10) {
+            flowInteger += 1;
+            flowDecimal = 0;
+        }
+
+        char flowBuf[16];
+        if (flowNegative) {
+            snprintf(flowBuf, sizeof(flowBuf), "-%d.%d", flowInteger, flowDecimal);
+        } else {
+            snprintf(flowBuf, sizeof(flowBuf), "%d.%d", flowInteger, flowDecimal);
+        }
+
+        // Pasek flow rate: 0–15 g/s → 0–128 px
+        float barFlow = currentFlowRate;
+        if (barFlow < 0.0f) {
+            barFlow = 0.0f;
+        }
+
+        const float FLOW_MAX = 15.0f;
+        int barWidth = 0;
+
+        if (barFlow <= 0.0f) {
+            barWidth = 0;
+        } else if (barFlow >= FLOW_MAX) {
+            barWidth = 128;
+        } else {
+            barWidth = static_cast<int>((barFlow / FLOW_MAX) * 128.0f + 0.5f);
+        }
+
+        if (barWidth > 0) {
+            display.fillRect(0, 59, barWidth, 5, 1);
+        }
+        // reszta linii i tak jest czysta po clearDisplay()
+
+        // Flow tekstowo (RRR.R) na dole
+        display.setFont(&FreeMonoBold12pt7b);
+        display.setCursor(0, 56);
+        display.print(flowBuf);
+
+        // ================== STATUSY (BT / WI) ==================
+        // Możesz później podmienić na warunki typu if (st.bluetoothConnected) itd.
+        display.setFont(&FreeMonoBold9pt7b);
+        display.setCursor(104, 40);
+        display.println("BT");
+
+        display.setCursor(104, 54);
+        display.print("WI");
+
+        display.display();
+    }
+};
+
+template<typename Driver>
+class ClassicLayout32 : public IDisplayLayout<Driver> {
 public:
     void render(Driver& display, const DisplayState& st){
         int16_t x1, y1;
