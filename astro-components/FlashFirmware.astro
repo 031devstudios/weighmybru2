@@ -1,0 +1,244 @@
+---
+// FlashFirmware.astro - Main ESP32 Web Tools page matching your theme
+import BaseLayout from './BaseLayout.astro';
+import Navigation from './Navigation.astro';
+---
+
+<BaseLayout title="Flash WeighMyBru² Firmware" description="Flash WeighMyBru² firmware directly from your browser. No software installation required!">
+  <Navigation currentPage="/flash" />
+  
+  <div class="p-8 pt-20 md:pt-8">
+    <!-- Hero Section -->
+    <div class="text-center mb-12">
+      <h1 class="text-4xl font-bold text-white mb-4">
+        Flash WeighMyBru² Firmware
+      </h1>
+      <p class="text-xl text-gray-300 max-w-3xl mx-auto">
+        Install the latest firmware directly from your browser. No software installation required! 
+        Just connect your ESP32 board and click install.
+      </p>
+    </div>
+
+    <!-- Current Version Info -->
+    <div class="bg-black-select rounded-xl p-6 mb-12 border border-gray-700 max-w-2xl mx-auto">
+      <div class="text-center">
+        <h3 class="text-lg font-semibold text-white mb-2">
+          <i class="fa fa-tag mr-2" style="color: rgb(25, 124, 40);"></i>
+          Latest Version
+        </h3>
+        <div id="version-info" class="text-2xl font-bold text-green-600 mb-2">Loading...</div>
+        <div id="release-date" class="text-sm text-gray-400">Checking for updates...</div>
+      </div>
+    </div>
+
+    <!-- Installation Options -->
+    <div class="grid md:grid-cols-2 gap-8 mb-12 max-w-4xl mx-auto">
+      <!-- ESP32-S3 Supermini -->
+      <div class="board-card bg-black-select rounded-xl p-8 text-center border border-gray-700">
+        <div class="mb-6">
+          <div class="w-48 h-32 bg-gray-700 rounded-lg mx-auto mb-4 flex items-center justify-center">
+            <i class="fa fa-microchip text-4xl text-green-600"></i>
+          </div>
+          <h3 class="text-2xl font-bold text-white mb-2">ESP32-S3 Supermini</h3>
+          <p class="text-gray-400 mb-6">
+            Popular development board with 4MB flash. Most common choice for DIY builds.
+          </p>
+        </div>
+        
+        <esp-web-install-button manifest="/releases/latest/manifest-supermini.json">
+          <button slot="activate" class="flash-button text-white font-bold py-4 px-8 rounded-lg text-lg w-full">
+            <i class="fa fa-download mr-2"></i>
+            Install Firmware
+          </button>
+          <span slot="unsupported" class="text-red-400 text-sm">
+            <i class="fa fa-exclamation-triangle mr-1"></i>
+            Your browser doesn't support Web Serial. Try Chrome, Edge, or Opera.
+          </span>
+          <span slot="not-allowed" class="text-yellow-400 text-sm">
+            <i class="fa fa-warning mr-1"></i>
+            Please enable Web Serial in your browser settings.
+          </span>
+        </esp-web-install-button>
+      </div>
+
+      <!-- XIAO ESP32S3 -->
+      <div class="board-card bg-black-select rounded-xl p-8 text-center border border-gray-700">
+        <div class="mb-6">
+          <div class="w-48 h-32 bg-gray-700 rounded-lg mx-auto mb-4 flex items-center justify-center">
+            <i class="fa fa-microchip text-4xl text-green-600"></i>
+          </div>
+          <h3 class="text-2xl font-bold text-white mb-2">XIAO ESP32S3</h3>
+          <p class="text-gray-400 mb-6">
+            Compact board with 8MB flash. Great for space-constrained builds.
+          </p>
+        </div>
+        
+        <esp-web-install-button manifest="/releases/latest/manifest-xiao.json">
+          <button slot="activate" class="flash-button text-white font-bold py-4 px-8 rounded-lg text-lg w-full">
+            <i class="fa fa-download mr-2"></i>
+            Install Firmware
+          </button>
+          <span slot="unsupported" class="text-red-400 text-sm">
+            <i class="fa fa-exclamation-triangle mr-1"></i>
+            Your browser doesn't support Web Serial. Try Chrome, Edge, or Opera.
+          </span>
+          <span slot="not-allowed" class="text-yellow-400 text-sm">
+            <i class="fa fa-warning mr-1"></i>
+            Please enable Web Serial in your browser settings.
+          </span>
+        </esp-web-install-button>
+      </div>
+    </div>
+
+    <!-- Instructions -->
+    <div class="bg-gradient-to-r from-black-hover to-black-select rounded-xl p-8 mb-12 border border-gray-700 max-w-6xl mx-auto">
+      <h3 class="text-2xl font-bold text-white mb-6 text-center">
+        <i class="fa fa-list-ol mr-2 text-green-600"></i>
+        How to Flash
+      </h3>
+      <div class="grid md:grid-cols-4 gap-6">
+        <div class="text-center">
+          <div class="w-12 h-12 bg-green-600 text-white rounded-full flex items-center justify-center text-xl font-bold mx-auto mb-4">1</div>
+          <h4 class="font-semibold mb-2 text-white">Connect Board</h4>
+          <p class="text-sm text-gray-400">Connect your ESP32 board to your computer via USB cable</p>
+        </div>
+        <div class="text-center">
+          <div class="w-12 h-12 bg-green-600 text-white rounded-full flex items-center justify-center text-xl font-bold mx-auto mb-4">2</div>
+          <h4 class="font-semibold mb-2 text-white">Select Board</h4>
+          <p class="text-sm text-gray-400">Choose your board type (Supermini or XIAO) and click install</p>
+        </div>
+        <div class="text-center">
+          <div class="w-12 h-12 bg-green-600 text-white rounded-full flex items-center justify-center text-xl font-bold mx-auto mb-4">3</div>
+          <h4 class="font-semibold mb-2 text-white">Follow Prompts</h4>
+          <p class="text-sm text-gray-400">Your browser will guide you through the flashing process</p>
+        </div>
+        <div class="text-center">
+          <div class="w-12 h-12 bg-green-600 text-white rounded-full flex items-center justify-center text-xl font-bold mx-auto mb-4">4</div>
+          <h4 class="font-semibold mb-2 text-white">Enjoy!</h4>
+          <p class="text-sm text-gray-400">Your WeighMyBru² is ready to use with the latest firmware</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Features -->
+    <div class="grid md:grid-cols-3 gap-8 mb-12 max-w-6xl mx-auto">
+      <div class="text-center p-6 bg-black-select rounded-xl border border-gray-700">
+        <div class="text-4xl mb-4 text-green-600">
+          <i class="fa fa-rocket"></i>
+        </div>
+        <h4 class="text-xl font-semibold mb-2 text-white">No Software Required</h4>
+        <p class="text-gray-400">Flash directly from your browser. No need to install PlatformIO or other tools.</p>
+      </div>
+      <div class="text-center p-6 bg-black-select rounded-xl border border-gray-700">
+        <div class="text-4xl mb-4 text-green-600">
+          <i class="fa fa-sync-alt"></i>
+        </div>
+        <h4 class="text-xl font-semibold mb-2 text-white">Always Latest</h4>
+        <p class="text-gray-400">Automatically gets the latest stable firmware with all recent improvements.</p>
+      </div>
+      <div class="text-center p-6 bg-black-select rounded-xl border border-gray-700">
+        <div class="text-4xl mb-4 text-green-600">
+          <i class="fa fa-shield-alt"></i>
+        </div>
+        <h4 class="text-xl font-semibold mb-2 text-white">Safe & Reliable</h4>
+        <p class="text-gray-400">Tested builds with complete firmware including web interface and bootloader.</p>
+      </div>
+    </div>
+
+    <!-- Troubleshooting -->
+    <div class="bg-black-select rounded-xl p-8 border border-gray-700 max-w-6xl mx-auto">
+      <h3 class="text-2xl font-bold text-white mb-6">
+        <i class="fa fa-tools mr-2 text-green-600"></i>
+        Troubleshooting
+      </h3>
+      <div class="space-y-6">
+        <div>
+          <h4 class="font-semibold text-lg mb-2 text-white">
+            <i class="fa fa-exclamation-triangle mr-2 text-yellow-400"></i>
+            Browser Not Supported
+          </h4>
+          <p class="text-gray-400 mb-2">ESP32 Web Tools requires a browser with Web Serial support:</p>
+          <ul class="list-disc list-inside text-gray-400 space-y-1 ml-4">
+            <li><strong class="text-green-400">Supported:</strong> Chrome, Edge, Opera</li>
+            <li><strong class="text-red-400">Not Supported:</strong> Firefox, Safari, Internet Explorer</li>
+          </ul>
+        </div>
+        <div>
+          <h4 class="font-semibold text-lg mb-2 text-white">
+            <i class="fa fa-usb mr-2 text-yellow-400"></i>
+            Device Not Detected
+          </h4>
+          <ul class="list-disc list-inside text-gray-400 space-y-1 ml-4">
+            <li>Make sure your board is connected via USB cable</li>
+            <li>Try a different USB cable (some are power-only)</li>
+            <li>Check if drivers are installed for your board</li>
+            <li>Try a different USB port</li>
+          </ul>
+        </div>
+        <div>
+          <h4 class="font-semibold text-lg mb-2 text-white">
+            <i class="fa fa-times-circle mr-2 text-red-400"></i>
+            Flashing Failed
+          </h4>
+          <ul class="list-disc list-inside text-gray-400 space-y-1 ml-4">
+            <li>Hold the BOOT button while connecting the board</li>
+            <li>Try putting the board in download mode manually</li>
+            <li>Ensure no other applications are using the serial port</li>
+          </ul>
+        </div>
+      </div>
+      
+      <div class="mt-8 p-6 bg-black-hover rounded-lg border border-gray-600">
+        <p class="text-gray-300">
+          <strong class="text-green-400">
+            <i class="fa fa-question-circle mr-1"></i>
+            Need more help?
+          </strong> Join our 
+          <a href="https://discord.gg/HYp4TSEjSf" class="text-green-400 hover:text-green-300 underline">Discord community</a> 
+          or check the 
+          <a href="https://github.com/031devstudios/weighmybru2" class="text-green-400 hover:text-green-300 underline">GitHub repository</a>
+          for detailed documentation.
+        </p>
+      </div>
+    </div>
+  </div>
+</BaseLayout>
+
+<script>
+  // Fetch latest version info from GitHub API
+  async function updateVersionInfo() {
+    try {
+      const response = await fetch('https://api.github.com/repos/031devstudios/weighmybru2/releases/latest');
+      const release = await response.json();
+      
+      if (release.tag_name) {
+        const versionEl = document.getElementById('version-info');
+        const dateEl = document.getElementById('release-date');
+        
+        if (versionEl) versionEl.textContent = release.tag_name;
+        if (dateEl) dateEl.textContent = `Released ${new Date(release.published_at).toLocaleDateString()}`;
+      }
+    } catch (error) {
+      console.error('Failed to fetch version info:', error);
+      const versionEl = document.getElementById('version-info');
+      const dateEl = document.getElementById('release-date');
+      
+      if (versionEl) versionEl.textContent = 'v2.1.0';
+      if (dateEl) dateEl.textContent = 'Check GitHub for latest version';
+    }
+  }
+
+  // Update version info on page load
+  updateVersionInfo();
+
+  // Add loading states for install buttons
+  document.addEventListener('DOMContentLoaded', function() {
+    const installButtons = document.querySelectorAll('esp-web-install-button');
+    installButtons.forEach(button => {
+      button.addEventListener('state-changed', function(e: any) {
+        const state = e.detail;
+        console.log('Install state:', state);
+      });
+    });
+  });
+</script>

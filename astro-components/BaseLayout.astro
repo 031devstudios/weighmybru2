@@ -1,0 +1,107 @@
+---
+// BaseLayout.astro - Main layout matching your WeighMyBru² theme
+export interface Props {
+  title: string;
+  description?: string;
+}
+
+const { title, description = "WeighMyBru² - Smart Coffee Scale Firmware" } = Astro.props;
+---
+
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{title}</title>
+  <meta name="description" content={description}>
+  <link rel="icon" type="image/png" href="/favicon.png">
+  
+  <!-- Tailwind CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@3.4.1/dist/tailwind.min.css" rel="stylesheet">
+  
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Alpine.js -->
+  <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  
+  <!-- ESP32 Web Tools -->
+  <script type="module" src="https://unpkg.com/esp-web-tools@9/dist/web/install-button.js?module"></script>
+  
+  <!-- Custom Tailwind Config -->
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            'orange-darker': '#197C28',
+            'orange-darkest': '#197C28', 
+            'black-discord': '#121214',
+            'black-hover': '#1D1D1E',
+            'black-select': '#363638',
+            'black-background': '#1A1A1E',
+            'button-green': '#197C28'
+          }
+        }
+      }
+    }
+  </script>
+  
+  <style>
+    /* Custom styles for ESP32 Web Tools integration */
+    .flash-button {
+      background: linear-gradient(135deg, #197C28 0%, #047857 100%);
+      transition: all 0.3s ease;
+    }
+    .flash-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(25, 124, 40, 0.3);
+    }
+    .board-card {
+      transition: all 0.3s ease;
+      border: 2px solid transparent;
+    }
+    .board-card:hover {
+      border-color: #197C28;
+      transform: translateY(-4px);
+    }
+    
+    /* ESP32 Web Tools button styling */
+    esp-web-install-button {
+      display: block;
+      width: 100%;
+    }
+    
+    esp-web-install-button button {
+      width: 100%;
+      font-size: 1.1rem;
+      padding: 1rem 2rem;
+      background: linear-gradient(135deg, #197C28 0%, #047857 100%);
+      color: white;
+      border: none;
+      border-radius: 0.5rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+    
+    esp-web-install-button button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(25, 124, 40, 0.3);
+    }
+    
+    esp-web-install-button button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+  </style>
+</head>
+
+<body class="bg-black-background text-white font-sans min-h-screen">
+  <slot />
+</body>
+</html>

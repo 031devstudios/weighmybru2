@@ -1,0 +1,196 @@
+---
+// index.astro - Complete homepage example
+import BaseLayout from './BaseLayout.astro';
+import Navigation from './Navigation.astro';
+import HeroSection from './HeroSection.astro';
+import FeaturesGrid from './FeaturesGrid.astro';
+---
+
+<BaseLayout title="WeighMyBru² - Smart Coffee Scale Firmware">
+  <Navigation currentPage="/" />
+  
+  <HeroSection />
+  
+  <FeaturesGrid />
+  
+  <!-- Getting Started Section -->
+  <div class="py-20 bg-black-discord">
+    <div class="max-w-6xl mx-auto px-4">
+      <div class="text-center mb-16">
+        <h2 class="text-4xl font-bold text-white mb-4">
+          Get Started in Minutes
+        </h2>
+        <p class="text-xl text-gray-300">
+          Three simple steps to upgrade your coffee brewing game
+        </p>
+      </div>
+      
+      <div class="grid md:grid-cols-3 gap-8">
+        <div class="text-center">
+          <div class="w-16 h-16 bg-green-600 text-white rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-6">
+            1
+          </div>
+          <h3 class="text-xl font-semibold text-white mb-4">Flash Firmware</h3>
+          <p class="text-gray-400 mb-6">
+            Use our web-based flasher to install WeighMyBru² firmware on your ESP32 board. 
+            No software installation required!
+          </p>
+          <a href="/flash" class="text-green-400 hover:text-green-300 font-semibold">
+            <i class="fa fa-microchip mr-1"></i>
+            Flash Now
+          </a>
+        </div>
+        
+        <div class="text-center">
+          <div class="w-16 h-16 bg-green-600 text-white rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-6">
+            2
+          </div>
+          <h3 class="text-xl font-semibold text-white mb-4">Build Your Scale</h3>
+          <p class="text-gray-400 mb-6">
+            Connect your load cell and display according to our detailed build guide. 
+            Compatible with common scale hardware.
+          </p>
+          <a href="/docs/build" class="text-green-400 hover:text-green-300 font-semibold">
+            <i class="fa fa-book mr-1"></i>
+            Build Guide
+          </a>
+        </div>
+        
+        <div class="text-center">
+          <div class="w-16 h-16 bg-green-600 text-white rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-6">
+            3
+          </div>
+          <h3 class="text-xl font-semibold text-white mb-4">Start Brewing</h3>
+          <p class="text-gray-400 mb-6">
+            Calibrate your scale and start tracking your brewing sessions with precision timing and flow rates.
+          </p>
+          <a href="/docs/calibration" class="text-green-400 hover:text-green-300 font-semibold">
+            <i class="fa fa-balance-scale mr-1"></i>
+            Calibration Guide
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Community Section -->
+  <div class="py-20 bg-black-background">
+    <div class="max-w-4xl mx-auto px-4 text-center">
+      <h2 class="text-4xl font-bold text-white mb-6">
+        Join the Community
+      </h2>
+      <p class="text-xl text-gray-300 mb-8">
+        Connect with fellow coffee enthusiasts, share your builds, get support, and help improve WeighMyBru².
+      </p>
+      
+      <div class="grid sm:grid-cols-3 gap-6">
+        <a 
+          href="https://discord.gg/HYp4TSEjSf"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="bg-black-select rounded-lg p-6 border border-gray-700 hover:border-green-600 transition-colors group"
+        >
+          <i class="fab fa-discord text-4xl text-green-600 mb-4 group-hover:scale-110 transition-transform"></i>
+          <h3 class="text-lg font-semibold text-white mb-2">Discord</h3>
+          <p class="text-gray-400 text-sm">Real-time chat and support</p>
+        </a>
+        
+        <a 
+          href="https://github.com/031devstudios/weighmybru2"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="bg-black-select rounded-lg p-6 border border-gray-700 hover:border-green-600 transition-colors group"
+        >
+          <i class="fab fa-github text-4xl text-green-600 mb-4 group-hover:scale-110 transition-transform"></i>
+          <h3 class="text-lg font-semibold text-white mb-2">GitHub</h3>
+          <p class="text-gray-400 text-sm">Source code and issues</p>
+        </a>
+        
+        <a 
+          href="/docs"
+          class="bg-black-select rounded-lg p-6 border border-gray-700 hover:border-green-600 transition-colors group"
+        >
+          <i class="fa fa-book text-4xl text-green-600 mb-4 group-hover:scale-110 transition-transform"></i>
+          <h3 class="text-lg font-semibold text-white mb-2">Documentation</h3>
+          <p class="text-gray-400 text-sm">Guides and references</p>
+        </a>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Footer -->
+  <footer class="bg-black-discord border-t border-gray-700 py-12">
+    <div class="max-w-6xl mx-auto px-4">
+      <div class="grid md:grid-cols-4 gap-8">
+        <div>
+          <h3 class="text-lg font-semibold text-white mb-4">WeighMyBru²</h3>
+          <p class="text-gray-400 text-sm mb-4">
+            Open-source smart coffee scale firmware for precision brewing.
+          </p>
+          <div class="flex space-x-4">
+            <a href="https://github.com/031devstudios/weighmybru2" class="text-gray-400 hover:text-green-400">
+              <i class="fab fa-github text-xl"></i>
+            </a>
+            <a href="https://discord.gg/HYp4TSEjSf" class="text-gray-400 hover:text-green-400">
+              <i class="fab fa-discord text-xl"></i>
+            </a>
+          </div>
+        </div>
+        
+        <div>
+          <h4 class="text-white font-semibold mb-4">Quick Links</h4>
+          <div class="space-y-2">
+            <a href="/flash" class="block text-gray-400 hover:text-green-400 text-sm">Flash Firmware</a>
+            <a href="/docs" class="block text-gray-400 hover:text-green-400 text-sm">Documentation</a>
+            <a href="/community" class="block text-gray-400 hover:text-green-400 text-sm">Community</a>
+          </div>
+        </div>
+        
+        <div>
+          <h4 class="text-white font-semibold mb-4">Resources</h4>
+          <div class="space-y-2">
+            <a href="/docs/build" class="block text-gray-400 hover:text-green-400 text-sm">Build Guide</a>
+            <a href="/docs/troubleshooting" class="block text-gray-400 hover:text-green-400 text-sm">Troubleshooting</a>
+            <a href="/docs/api" class="block text-gray-400 hover:text-green-400 text-sm">API Reference</a>
+          </div>
+        </div>
+        
+        <div>
+          <h4 class="text-white font-semibold mb-4">Latest Release</h4>
+          <div class="text-sm">
+            <div id="footer-version" class="text-green-600 font-semibold mb-1">Loading...</div>
+            <div id="footer-date" class="text-gray-400">Fetching release info...</div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="border-t border-gray-700 mt-8 pt-8 text-center text-gray-400 text-sm">
+        <p>&copy; 2025 031DevStudios. WeighMyBru² is open source software licensed under MIT.</p>
+      </div>
+    </div>
+  </footer>
+</BaseLayout>
+
+<script>
+  // Update footer version info
+  async function updateFooterVersion() {
+    try {
+      const response = await fetch('https://api.github.com/repos/031devstudios/weighmybru2/releases/latest');
+      const release = await response.json();
+      
+      const versionEl = document.getElementById('footer-version');
+      const dateEl = document.getElementById('footer-date');
+      
+      if (versionEl && release.tag_name) {
+        versionEl.textContent = release.tag_name;
+      }
+      if (dateEl && release.published_at) {
+        dateEl.textContent = new Date(release.published_at).toLocaleDateString();
+      }
+    } catch (error) {
+      console.error('Failed to fetch version info:', error);
+    }
+  }
+  
+  updateFooterVersion();
+</script>
