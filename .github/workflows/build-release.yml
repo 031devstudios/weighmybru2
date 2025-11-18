@@ -1,0 +1,259 @@
+name: Build Release Binaries
+
+on:
+  push:
+    tags: ['v*']  # Trigger on version tags like v2.1.0
+  workflow_dispatch:  # Manual trigger for testing
+    inputs:
+      version_override:
+        description: 'Override version (e.g., 2.1.0-beta)'
+        required: false
+        type: string
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        environment: [esp32s3-supermini, esp32s3-xiao]
+        
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.x'
+        
+    - name: Install PlatformIO
+      run: |
+        pip install platformio
+        pio upgrade --dev
+        pio pkg update
+        
+    - name: Extract version information
+      id: version
+      run: |
+        if [[ $GITHUB_REF == refs/tags/* ]]; then
+          # Extract version from git tag (remove 'v' prefix)
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "IS_RELEASE=true" >> $GITHUB_OUTPUT
+        elif [[ -n "${{ github.event.inputs.version_override }}" ]]; then
+          # Use manual override
+          VERSION="${{ github.event.inputs.version_override }}"
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "IS_RELEASE=false" >> $GITHUB_OUTPUT
+        else
+          # Development build
+          VERSION="dev-$(date +%Y%m%d)"
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "IS_RELEASE=false" >> $GITHUB_OUTPUT
+        fi
+        
+        # Extract build info
+        BUILD_NUMBER=$GITHUB_RUN_NUMBER
+        COMMIT_HASH=$(git rev-parse --short HEAD)
+        BUILD_DATE=$(date -u +"%b %d %Y")
+        BUILD_TIME=$(date -u +"%H:%M:%S")
+        
+        echo "BUILD_NUMBER=$BUILD_NUMBER" >> $GITHUB_OUTPUT
+        echo "COMMIT_HASH=$COMMIT_HASH" >> $GITHUB_OUTPUT
+        echo "BUILD_DATE=$BUILD_DATE" >> $GITHUB_OUTPUT
+        echo "BUILD_TIME=$BUILD_TIME" >> $GITHUB_OUTPUT
+        
+        echo "Building version: $VERSION"
+        echo "Build number: $BUILD_NUMBER"
+        echo "Commit: $COMMIT_HASH"
+        
+    - name: Build firmware
+      run: |
+        # Set build flags with version info
+        export PLATFORMIO_BUILD_FLAGS="\
+          -DWEIGHMYBRU_BUILD_NUMBER=${{ steps.version.outputs.BUILD_NUMBER }} \
+          -DWEIGHMYBRU_COMMIT_HASH=\\\"${{ steps.version.outputs.COMMIT_HASH }}\\\" \
+          -DWEIGHMYBRU_BUILD_DATE=\\\"${{ steps.version.outputs.BUILD_DATE }}\\\" \
+          -DWEIGHMYBRU_BUILD_TIME=\\\"${{ steps.version.outputs.BUILD_TIME }}\\\""
+        
+        echo "Building ${{ matrix.environment }} with flags: $PLATFORMIO_BUILD_FLAGS"
+        
+        # Build firmware
+        pio run -e ${{ matrix.environment }}
+        
+        # Build filesystem
+        pio run -e ${{ matrix.environment }} -t buildfs
+        
+    - name: Prepare release files
+      run: |
+        mkdir -p release
+        
+        # Determine board suffix for file naming
+        if [[ "${{ matrix.environment }}" == "esp32s3-supermini" ]]; then
+          BOARD_SUFFIX="supermini"
+        else
+          BOARD_SUFFIX="xiao"
+        fi
+        
+        # Copy and rename binaries with version
+        cp .pio/build/${{ matrix.environment }}/firmware.bin \
+           release/weighmybru-${BOARD_SUFFIX}-v${{ steps.version.outputs.VERSION }}.bin
+           
+        # Check if LittleFS was built
+        if [[ -f .pio/build/${{ matrix.environment }}/littlefs.bin ]]; then
+          cp .pio/build/${{ matrix.environment }}/littlefs.bin \
+             release/weighmybru-${BOARD_SUFFIX}-v${{ steps.version.outputs.VERSION }}-littlefs.bin
+        fi
+        
+        # Copy bootloader and partitions for complete flashing
+        if [[ -f .pio/build/${{ matrix.environment }}/bootloader.bin ]]; then
+          cp .pio/build/${{ matrix.environment }}/bootloader.bin \
+             release/weighmybru-${BOARD_SUFFIX}-v${{ steps.version.outputs.VERSION }}-bootloader.bin
+        fi
+        
+        if [[ -f .pio/build/${{ matrix.environment }}/partitions.bin ]]; then
+          cp .pio/build/${{ matrix.environment }}/partitions.bin \
+             release/weighmybru-${BOARD_SUFFIX}-v${{ steps.version.outputs.VERSION }}-partitions.bin
+        fi
+        
+        echo "BOARD_SUFFIX=$BOARD_SUFFIX" >> $GITHUB_ENV
+        
+    - name: Generate ESP32 Web Tools manifest
+      run: |
+        BOARD_SUFFIX=${{ env.BOARD_SUFFIX }}
+        VERSION=${{ steps.version.outputs.VERSION }}
+        
+        # Determine board-specific settings
+        if [[ "$BOARD_SUFFIX" == "supermini" ]]; then
+          BOARD_NAME="WeighMyBru² - ESP32-S3 Supermini"
+          CHIP_FAMILY="ESP32-S3"
+        else
+          BOARD_NAME="WeighMyBru² - XIAO ESP32S3"  
+          CHIP_FAMILY="ESP32-S3"
+        fi
+        
+        # Create ESP32 Web Tools manifest
+        cat > release/manifest-${BOARD_SUFFIX}.json << EOF
+        {
+          "name": "$BOARD_NAME",
+          "version": "$VERSION", 
+          "home_assistant_domain": "weighmybru",
+          "new_install_prompt_erase": true,
+          "funding_url": "https://github.com/031devstudios/weighmybru2",
+          "builds": [
+            {
+              "chipFamily": "$CHIP_FAMILY",
+              "parts": [
+                {
+                  "path": "weighmybru-${BOARD_SUFFIX}-v${VERSION}-bootloader.bin",
+                  "offset": 0
+                },
+                {
+                  "path": "weighmybru-${BOARD_SUFFIX}-v${VERSION}-partitions.bin", 
+                  "offset": 32768
+                },
+                {
+                  "path": "weighmybru-${BOARD_SUFFIX}-v${VERSION}.bin",
+                  "offset": 65536
+                },
+                {
+                  "path": "weighmybru-${BOARD_SUFFIX}-v${VERSION}-littlefs.bin",
+                  "offset": 2686976
+                }
+              ]
+            }
+          ]
+        }
+        EOF
+        
+        echo "Generated manifest for $BOARD_NAME v$VERSION"
+        
+    - name: Create build info file
+      run: |
+        cat > release/build-info-${{ env.BOARD_SUFFIX }}.json << EOF
+        {
+          "version": "${{ steps.version.outputs.VERSION }}",
+          "board": "${{ matrix.environment }}",
+          "build_number": ${{ steps.version.outputs.BUILD_NUMBER }},
+          "commit_hash": "${{ steps.version.outputs.COMMIT_HASH }}",
+          "build_date": "${{ steps.version.outputs.BUILD_DATE }}",
+          "build_time": "${{ steps.version.outputs.BUILD_TIME }}",
+          "is_release": ${{ steps.version.outputs.IS_RELEASE }},
+          "github_run_id": "${{ github.run_id }}",
+          "github_sha": "${{ github.sha }}"
+        }
+        EOF
+        
+    - name: Upload release artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: weighmybru-${{ env.BOARD_SUFFIX }}-v${{ steps.version.outputs.VERSION }}
+        path: release/
+        retention-days: 90
+
+  create-release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    
+    steps:
+    - name: Download all artifacts
+      uses: actions/download-artifact@v3
+      
+    - name: Extract version from tag
+      id: version
+      run: |
+        VERSION=${GITHUB_REF#refs/tags/v}
+        echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+        
+    - name: Organize release files
+      run: |
+        mkdir -p release-final
+        
+        # Combine all artifacts into one release folder
+        find . -name "*.bin" -o -name "*.json" | while read file; do
+          cp "$file" release-final/
+        done
+        
+        ls -la release-final/
+        
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: v${{ steps.version.outputs.VERSION }}
+        name: WeighMyBru² v${{ steps.version.outputs.VERSION }}
+        files: release-final/*
+        body: |
+          ## WeighMyBru² v${{ steps.version.outputs.VERSION }}
+          
+          ### 📦 Release Binaries
+          
+          **ESP32-S3 Supermini:**
+          - `weighmybru-supermini-v${{ steps.version.outputs.VERSION }}.bin` - Main firmware
+          - `weighmybru-supermini-v${{ steps.version.outputs.VERSION }}-littlefs.bin` - Web interface files
+          - `manifest-supermini.json` - ESP32 Web Tools manifest
+          
+          **XIAO ESP32S3:**
+          - `weighmybru-xiao-v${{ steps.version.outputs.VERSION }}.bin` - Main firmware  
+          - `weighmybru-xiao-v${{ steps.version.outputs.VERSION }}-littlefs.bin` - Web interface files
+          - `manifest-xiao.json` - ESP32 Web Tools manifest
+          
+          ### 🚀 Installation Options
+          
+          1. **Web-based (Recommended):** Use ESP32 Web Tools on [weighmybru.com](https://weighmybru.com)
+          2. **Manual:** Download binaries and flash with esptool or PlatformIO
+          
+          ### 📋 Requirements
+          - ESP32-S3 Supermini or XIAO ESP32S3 board
+          - Load cell and HX711 amplifier
+          - See [README.md](https://github.com/031devstudios/weighmybru2/blob/master/README.md) for wiring
+          
+          ### 🔧 Build Information
+          - Build: #${{ github.run_number }}
+          - Commit: ${{ github.sha }}
+          - Date: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

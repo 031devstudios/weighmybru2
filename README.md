@@ -68,6 +68,26 @@ pio run -e esp32s3-xiao -t uploadfs       # For XIAO ESP32S3
 - The web interface will be unavailable
 - You'll see a clear message explaining how to fix this issue
 
+### 🌐 Web-Based Installation (Recommended)
+
+For beginners, we now support **ESP32 Web Tools** for easy browser-based installation:
+
+1. **Visit [weighmybru.com](https://weighmybru.com)** 
+2. **Connect your ESP32 board** via USB
+3. **Click "Install Firmware"** and select your board:
+   - ESP32-S3 Supermini
+   - XIAO ESP32S3
+4. **Follow the prompts** - no software installation required!
+
+**Benefits:**
+- ✅ No need to install VS Code or PlatformIO
+- ✅ Automatic latest firmware version
+- ✅ Complete installation (firmware + filesystem)
+- ✅ Works on any modern browser (Chrome, Edge, Opera)
+- ✅ Version checking and device information
+
+For advanced users or development, continue with the PlatformIO instructions below.
+
 ## Bill Of Materials (BOM)
 
 | Qty |           Item                      | Amazon Link | Aliexpress Link |

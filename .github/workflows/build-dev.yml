@@ -1,0 +1,82 @@
+name: Build Development
+
+on:
+  push:
+    branches: [ main, master, develop, 'feature/*' ]
+  pull_request:
+    branches: [ main, master, develop ]
+    
+jobs:
+  test-build:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        environment: [esp32s3-supermini, esp32s3-xiao]
+        
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.x'
+        
+    - name: Install PlatformIO
+      run: |
+        pip install platformio
+        pio upgrade --dev
+        pio pkg update
+        
+    - name: Extract build info
+      id: build_info
+      run: |
+        BUILD_NUMBER=$GITHUB_RUN_NUMBER
+        COMMIT_HASH=$(git rev-parse --short HEAD)
+        BUILD_DATE=$(date -u +"%b %d %Y")
+        BUILD_TIME=$(date -u +"%H:%M:%S")
+        
+        echo "BUILD_NUMBER=$BUILD_NUMBER" >> $GITHUB_OUTPUT
+        echo "COMMIT_HASH=$COMMIT_HASH" >> $GITHUB_OUTPUT
+        echo "BUILD_DATE=$BUILD_DATE" >> $GITHUB_OUTPUT
+        echo "BUILD_TIME=$BUILD_TIME" >> $GITHUB_OUTPUT
+        
+        echo "Building development version"
+        echo "Build number: $BUILD_NUMBER"
+        echo "Commit: $COMMIT_HASH"
+        
+    - name: Build firmware
+      run: |
+        # Set build flags for development builds
+        export PLATFORMIO_BUILD_FLAGS="\
+          -DWEIGHMYBRU_BUILD_NUMBER=${{ steps.build_info.outputs.BUILD_NUMBER }} \
+          -DWEIGHMYBRU_COMMIT_HASH=\\\"${{ steps.build_info.outputs.COMMIT_HASH }}\\\" \
+          -DWEIGHMYBRU_BUILD_DATE=\\\"${{ steps.build_info.outputs.BUILD_DATE }}\\\" \
+          -DWEIGHMYBRU_BUILD_TIME=\\\"${{ steps.build_info.outputs.BUILD_TIME }}\\\""
+        
+        echo "Building ${{ matrix.environment }} with flags: $PLATFORMIO_BUILD_FLAGS"
+        
+        # Test build only
+        pio run -e ${{ matrix.environment }}
+        
+        # Check binary size
+        ls -la .pio/build/${{ matrix.environment }}/firmware.bin
+        
+    - name: Build check summary
+      run: |
+        echo "✅ ${{ matrix.environment }} build successful"
+        
+        # Get firmware size
+        FIRMWARE_SIZE=$(stat -c%s ".pio/build/${{ matrix.environment }}/firmware.bin")
+        FIRMWARE_SIZE_KB=$((FIRMWARE_SIZE / 1024))
+        
+        echo "📦 Firmware size: ${FIRMWARE_SIZE_KB}KB"
+        
+        # Check if size is reasonable (under 3MB for ESP32-S3)
+        MAX_SIZE_KB=3072  # 3MB
+        if [ $FIRMWARE_SIZE_KB -gt $MAX_SIZE_KB ]; then
+          echo "⚠️ Warning: Firmware size (${FIRMWARE_SIZE_KB}KB) exceeds recommended maximum (${MAX_SIZE_KB}KB)"
+        else
+          echo "✅ Firmware size within acceptable limits"
+        fi
