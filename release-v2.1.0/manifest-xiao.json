@@ -1,0 +1,30 @@
+{
+  "name": "WeighMyBru² Firmware (XIAO)",
+  "version": "2.1.0",
+  "home_assistant_domain": "weighmybru",
+  "funding_url": "https://github.com/sponsors/031devstudios",
+  "new_install_skip_erase": false,
+  "builds": [
+    {
+      "chipFamily": "ESP32-S3",
+      "parts": [
+        {
+          "path": "bootloader.bin",
+          "offset": 0
+        },
+        {
+          "path": "partitions.bin", 
+          "offset": 32768
+        },
+        {
+          "path": "firmware-xiao.bin",
+          "offset": 65536
+        },
+        {
+          "path": "littlefs-xiao.bin",
+          "offset": 3211264
+        }
+      ]
+    }
+  ]
+}
