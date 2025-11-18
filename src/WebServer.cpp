@@ -7,6 +7,7 @@
 #include "FlowRate.h"
 #include "Calibration.h"
 #include "BluetoothScale.h"
+#include "Version.h"
 
 Preferences preferences;
 
@@ -185,6 +186,12 @@ void setupWebServer(Scale &scale, FlowRate &flowRate, BluetoothScale &bluetoothS
     json += ",\"wifi_signal_quality\":\"" + getWiFiSignalQuality() + "\"";
     json += ",\"bluetooth_connected\":" + String(bluetoothScale.isConnected() ? "true" : "false");
     json += ",\"bluetooth_signal_strength\":" + String(bluetoothScale.getBluetoothSignalStrength());
+    
+    // Add device version information
+    json += ",\"device_version\":\"" + String(WEIGHMYBRU_VERSION_STRING) + "\"";
+    json += ",\"device_board\":\"" + String(WEIGHMYBRU_BOARD_NAME) + "\"";
+    json += ",\"device_build_date\":\"" + String(WEIGHMYBRU_BUILD_DATE) + "\"";
+    json += ",\"device_full_version\":\"" + String(WEIGHMYBRU_FULL_VERSION) + "\"";
     
     json += "}";
     request->send(200, "application/json", json);
@@ -461,6 +468,26 @@ void setupWebServer(Scale &scale, FlowRate &flowRate, BluetoothScale &bluetoothS
     } else {
       request->send(400, "text/plain", "Missing enabled parameter");
     }
+  });
+
+  // Device information endpoint
+  server.on("/api/device/info", HTTP_GET, [](AsyncWebServerRequest *request) {
+    String json = "{";
+    json += "\"version\":\"" + String(WEIGHMYBRU_VERSION_STRING) + "\",";
+    json += "\"full_version\":\"" + String(WEIGHMYBRU_FULL_VERSION) + "\",";
+    json += "\"board\":\"" + String(WEIGHMYBRU_BOARD_NAME) + "\",";
+    json += "\"build_date\":\"" + String(WEIGHMYBRU_BUILD_DATE) + "\",";
+    json += "\"build_time\":\"" + String(WEIGHMYBRU_BUILD_TIME) + "\",";
+    json += "\"firmware_size\":" + String(ESP.getSketchSize()) + ",";
+    json += "\"free_space\":" + String(ESP.getFreeSketchSpace()) + ",";
+    json += "\"chip_model\":\"" + String(ESP.getChipModel()) + "\",";
+    json += "\"chip_revision\":" + String(ESP.getChipRevision()) + ",";
+    json += "\"cpu_frequency\":" + String(ESP.getCpuFreqMHz()) + ",";
+    json += "\"flash_size\":" + String(ESP.getFlashChipSize()) + ",";
+    json += "\"free_heap\":" + String(ESP.getFreeHeap()) + ",";
+    json += "\"sdk_version\":\"" + String(ESP.getSdkVersion()) + "\"";
+    json += "}";
+    request->send(200, "application/json", json);
   });
 
   // Signal strength endpoint for WiFi and Bluetooth monitoring

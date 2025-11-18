@@ -14,6 +14,7 @@
 #include "PowerManager.h"
 #include "BatteryMonitor.h"
 #include "BoardConfig.h"
+#include "Version.h"
 
 // Board-specific pin configuration
 uint8_t dataPin = HX711_DATA_PIN;     // HX711 Data pin
@@ -35,10 +36,12 @@ BatteryMonitor batteryMonitor(batteryPin);
 void setup() {
   Serial.begin(115200);
   
-  // Board identification 
+  // Version and board identification
   Serial.println("=================================");
-  Serial.printf("WeighMyBru² - %s\n", BOARD_NAME);
-  Serial.printf("Board: %s\n", BOARD_DESCRIPTION);
+  Serial.printf("WeighMyBru² v%s\n", WEIGHMYBRU_VERSION_STRING);
+  Serial.printf("Board: %s\n", WEIGHMYBRU_BOARD_NAME);
+  Serial.printf("Build: %s %s\n", WEIGHMYBRU_BUILD_DATE, WEIGHMYBRU_BUILD_TIME);
+  Serial.printf("Full Version: %s\n", WEIGHMYBRU_FULL_VERSION);
   Serial.printf("Flash Size: %dMB\n", FLASH_SIZE_MB);
   Serial.println("=================================");
   
