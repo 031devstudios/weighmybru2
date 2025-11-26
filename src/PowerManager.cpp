@@ -1,8 +1,8 @@
 #include "PowerManager.h"
 #include "Display.h"
-
-PowerManager::PowerManager(uint8_t sleepTouchPin, Display* display) 
-    : sleepTouchPin(sleepTouchPin), displayPtr(display), sleepTouchThreshold(0),
+#include "Scale.h"
+PowerManager::PowerManager(uint8_t sleepTouchPin, Display* display, Scale* scale)
+    : sleepTouchPin(sleepTouchPin), displayPtr(display), scalePtr(scale), sleepTouchThreshold(0),
       lastSleepTouchState(false), lastSleepTouchTime(0), touchStartTime(0),
       debounceDelay(200), sleepCountdownStart(0), sleepCountdownActive(false),
       longPressDetected(false), cancelledRecently(false), cancelTime(0),
@@ -113,11 +113,20 @@ void PowerManager::enterDeepSleep() {
     // Print wake-up configuration for debugging
     Serial.println("Wake-up configured for EXT0 on GPIO" + String(sleepTouchPin));
     Serial.println("Will wake when pin goes HIGH");
-    
+    if (displayPtr != nullptr) {
+        displayPtr->sleep();
+    }
+    if (scalePtr != nullptr) {
+        scalePtr->sleep();
+    }
     // Flush serial output
     Serial.flush();
     
     // Enter deep sleep - will wake up on external signal
+    
+
+
+
     esp_deep_sleep_start();
 }
 
