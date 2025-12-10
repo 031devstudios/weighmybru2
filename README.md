@@ -92,18 +92,18 @@ For advanced users or development, continue with the PlatformIO instructions bel
 
 | Qty |           Item                      | Amazon Link | Aliexpress Link |
 | --- | ----------------------------------- | -----------------------| --------------- |
-|  1  | 500g Mini Loadcell (I-shaped)       | https://a.co/d/6kvxZ0H |  |
-|  1  | HX711                               | https://a.co/d/3KiYRkA |  |
-|  1  | ESP32-S3-Supermini Board            | https://a.co/d/6289vbS |  |
-|  2  | Capacitive Tocuh Pads               | https://a.co/d/014di6l |  |
-|  1  | 0.91" SSD1306 OLED Display          | https://a.co/d/9UClWku |  |
-|  1  | 800mAh Li-ion Battery               | https://a.co/d/gbr1Yft |  |
-|  1  | JST-PH 2.0 Male Connector           | https://a.co/d/3BZGuHW |  |
-|  1  | Slide Switch                        | https://a.co/d/9KRqMyF |  |
+|  1  | 500g Mini Loadcell (I-shaped)       | https://a.co/d/6kvxZ0H | https://www.aliexpress.us/item/3256810229632696.html |
+|  1  | HX711                               | https://a.co/d/3KiYRkA | https://www.aliexpress.us/item/3256806665065792.html |
+|  1  | ESP32-S3-Supermini Board            | https://a.co/d/6289vbS | https://www.aliexpress.us/item/3256806649605779.html |
+|  2  | Capacitive Touch Pads               | https://a.co/d/014di6l | https://www.aliexpress.us/item/3256806118244119.html |
+|  1  | 0.91" SSD1306 OLED Display          | https://a.co/d/9UClWku | https://www.aliexpress.us/item/3256807486098308.html |
+|  1  | 800mAh Li-ion Battery               | https://a.co/d/gbr1Yft | https://www.aliexpress.us/item/3256809665395688.html |
+|  1  | JST-PH 2.0 Male Connector           | https://a.co/d/3BZGuHW | https://www.aliexpress.us/item/3256808498055527.html |
+|  1  | 5mm Slide Switch                    | https://a.co/d/9KRqMyF | https://www.aliexpress.us/item/3256808144255016.html |
 |  1  | Hookup Wire (Various Colors)        | https://a.co/d/1Fs8os9 |  |
 |  2  | M3x5x4 Heat Set Inserts             | https://a.co/d/bnQD7Iu |  |
-|  16 | M1.7x4 Self Tapping Screws          | https://a.co/d/1np5Nes |  |
-|  4  | M3x12 Button Head Screws            | https://a.co/d/iqM3d6E |  |
+|  16 | M1.7x4 Self Tapping Screws          | https://a.co/d/1np5Nes | https://www.aliexpress.us/item/2255800110173778.html |
+|  4  | M3x12 Button Head Screws            | https://a.co/d/iqM3d6E | https://www.aliexpress.us/item/3256807424674896.html |
 |  2  | 100K ohm 1% 1/4w resistors          | https://a.co/d/3R0YmGM |  |
 |  4  | Self-Adhesive Rubber Feet           | https://a.co/d/0q9TRmR |  |
 |  1  | Double Sided Tape (To hold Battery) | https://a.co/d/gM5SWwH |  |
