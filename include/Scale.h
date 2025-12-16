@@ -35,7 +35,7 @@ public:
     
     // FlowRate integration for tare operations
     void setFlowRatePtr(class FlowRate* flowRatePtr);
-    
+    void sleep();
 private:
     HX711 hx711;
     Preferences preferences;

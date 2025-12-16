@@ -371,3 +371,12 @@ String Scale::getFilterState() const {
         default: return "UNKNOWN";
     }
 }
+void  Scale::sleep () {
+    if(!isConnected) {
+        return;
+    }
+    Serial.println("Sending HX711 to sleep...");
+    hx711.power_down();
+    Serial.println("HX711 sent to sleep!");
+
+}
