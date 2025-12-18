@@ -125,6 +125,15 @@
 				"$gcc"
 			],
 			"group": "build"
+		},
+		{
+			"label": "Build WeighMyBru²",
+			"type": "shell",
+			"command": "pio run",
+			"problemMatcher": [
+				"$platformio"
+			],
+			"group": "build"
 		}
 	]
 }

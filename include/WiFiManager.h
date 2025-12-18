@@ -24,6 +24,7 @@ void maintainWiFi(); // Periodic WiFi maintenance to ensure AP stability
 bool attemptSTAConnection(const char* ssid, const char* password); // Attempt STA connection and switch from AP mode
 void switchToAPMode(); // Switch back to AP mode if STA connection fails
 void applySuperMiniAntennaFix(); // Apply maximum power settings for problematic SuperMini boards
+void applyAPModePowerOptimization(); // Apply power optimizations specifically for AP mode to reduce battery consumption
 int getWiFiSignalStrength(); // Get current WiFi signal strength in dBm
 String getWiFiSignalQuality(); // Get WiFi signal quality description
 String getWiFiConnectionInfo(); // Get detailed WiFi connection information
