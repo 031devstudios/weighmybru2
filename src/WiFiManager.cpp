@@ -2,6 +2,7 @@
 #include <WiFi.h>
 #include <Preferences.h>
 #include <ESPmDNS.h>
+#include <EEPROM.h>
 #include "WebServer.h"  // For web server control
 
 // ESP-IDF includes for advanced WiFi power management (SuperMini antenna fix)
@@ -11,6 +12,11 @@
 #endif
 
 Preferences wifiPrefs;
+
+// EEPROM addresses for backup storage
+#define EEPROM_WIFI_ENABLED_ADDR 100
+#define EEPROM_MAGIC_BYTE_ADDR 101
+#define EEPROM_MAGIC_VALUE 0xAB  // Magic byte to verify EEPROM has valid data
 
 // Station credentials
 char stored_ssid[33] = {0};
@@ -225,12 +231,39 @@ String getStoredPassword() {
 }
 
 void setupWiFi() {
+    // Debug: Show what state we're loading
+    Serial.println("=== WiFi SETUP DEBUG ===");
+    bool wifi_should_be_enabled = loadWiFiEnabledState();
+    Serial.printf("WiFi state on boot: %s\n", wifi_should_be_enabled ? "ENABLED" : "DISABLED");
+    Serial.println("========================");
+    
     // Check if WiFi should be enabled
-    if (!loadWiFiEnabledState()) {
-        Serial.println("WiFi is disabled - skipping WiFi setup for battery saving");
+    if (!wifi_should_be_enabled) {
+        Serial.println("WiFi is disabled - ensuring proper low-power state for battery saving");
+        // Use the proper disable function to ensure clean shutdown
+        WiFi.disconnect(true);
         WiFi.mode(WIFI_OFF);
+        delay(100); // Ensure hardware state settles
+        
+        // Additional ESP-IDF level power management for maximum power savings
+        #ifdef ESP_IDF_VERSION_MAJOR
+            esp_err_t result = esp_wifi_stop();
+            if (result == ESP_OK) {
+                Serial.println("ESP-IDF WiFi subsystem stopped for maximum power saving");
+            } else {
+                Serial.printf("ESP-IDF WiFi stop failed: %s\n", esp_err_to_name(result));
+            }
+        #endif
+        
+        Serial.println("WiFi hardware properly disabled for maximum battery life");
         return;
     }
+
+    setupWiFiForced();
+}
+
+void setupWiFiForced() {
+    Serial.println("=== FORCING WiFi INITIALIZATION ===");
     
     char ssid[33] = {0};
     char password[65] = {0};
@@ -672,49 +705,99 @@ bool loadWiFiEnabledState() {
         return wifiEnabled;
     }
     
-    // Check filesystem status first
-    checkFilesystemStatus();
+    Serial.println("Loading WiFi enabled state...");
     
-    if (!filesystemAvailable) {
-        showFilesystemErrorIfNeeded();
-        wifiEnabled = true; // Default to enabled when filesystem unavailable
-        wifiEnabledCached = true;
-        return wifiEnabled;
-    }
+    bool nvs_loaded = false;
+    bool eeprom_loaded = false;
+    bool nvs_enabled = true;
+    bool eeprom_enabled = true;
     
+    // Method 1: Try to load from NVS (Preferences)
     if (wifiPrefs.begin("wifi", true)) {
-        wifiEnabled = wifiPrefs.getBool("enabled", true); // Default to enabled
+        if (wifiPrefs.isKey("enabled")) {
+            nvs_enabled = wifiPrefs.getBool("enabled", true);
+            nvs_loaded = true;
+            Serial.printf("✓ WiFi state loaded from NVS: %s\n", nvs_enabled ? "ENABLED" : "DISABLED");
+        } else {
+            Serial.println("! No WiFi state found in NVS (first boot)");
+        }
         wifiPrefs.end();
-        wifiEnabledCached = true;
-        Serial.printf("WiFi enabled state loaded: %s\n", wifiEnabled ? "ON" : "OFF");
     } else {
-        showFilesystemErrorIfNeeded();
-        wifiEnabled = true; // Default to enabled on error
-        wifiEnabledCached = true;
+        Serial.println("✗ Failed to access NVS for WiFi state");
     }
     
+    // Method 2: Try to load from EEPROM backup
+    EEPROM.begin(512);
+    uint8_t magic = EEPROM.read(EEPROM_MAGIC_BYTE_ADDR);
+    if (magic == EEPROM_MAGIC_VALUE) {
+        uint8_t enabled_byte = EEPROM.read(EEPROM_WIFI_ENABLED_ADDR);
+        eeprom_enabled = (enabled_byte == 1);
+        eeprom_loaded = true;
+        Serial.printf("✓ WiFi state loaded from EEPROM: %s\n", eeprom_enabled ? "ENABLED" : "DISABLED");
+    } else {
+        Serial.println("! No valid WiFi state found in EEPROM");
+    }
+    EEPROM.end();
+    
+    // Decide which value to use
+    if (nvs_loaded && eeprom_loaded) {
+        if (nvs_enabled == eeprom_enabled) {
+            wifiEnabled = nvs_enabled;
+            Serial.printf("WiFi state consistent: %s\n", wifiEnabled ? "ENABLED" : "DISABLED");
+        } else {
+            // Conflict - use NVS as primary
+            wifiEnabled = nvs_enabled;
+            Serial.printf("WiFi state conflict! Using NVS value: %s\n", wifiEnabled ? "ENABLED" : "DISABLED");
+        }
+    } else if (nvs_loaded) {
+        wifiEnabled = nvs_enabled;
+        Serial.printf("WiFi state from NVS only: %s\n", wifiEnabled ? "ENABLED" : "DISABLED");
+    } else if (eeprom_loaded) {
+        wifiEnabled = eeprom_enabled;
+        Serial.printf("WiFi state from EEPROM only: %s\n", wifiEnabled ? "ENABLED" : "DISABLED");
+    } else {
+        wifiEnabled = true; // Default to enabled on first boot
+        Serial.println("WiFi state: DEFAULT (ENABLED) - first boot detected");
+    }
+    
+    wifiEnabledCached = true;
     return wifiEnabled;
 }
 
 void saveWiFiEnabledState(bool enabled) {
-    checkFilesystemStatus();
+    Serial.printf("Saving WiFi state: %s...\n", enabled ? "ENABLED" : "DISABLED");
     
-    if (!filesystemAvailable) {
-        // Can't save when filesystem unavailable, but update in-memory state
-        wifiEnabled = enabled;
-        wifiEnabledCached = true;
-        return;
-    }
+    bool nvs_success = false;
+    bool eeprom_success = false;
     
+    // Method 1: Try NVS (Preferences)
     if (wifiPrefs.begin("wifi", false)) {
         wifiPrefs.putBool("enabled", enabled);
         wifiPrefs.end();
+        nvs_success = true;
+        Serial.printf("✓ WiFi state saved to NVS: %s\n", enabled ? "ON" : "OFF");
+    } else {
+        Serial.println("✗ Failed to save WiFi state to NVS!");
+    }
+    
+    // Method 2: Backup to EEPROM
+    EEPROM.begin(512);
+    EEPROM.write(EEPROM_WIFI_ENABLED_ADDR, enabled ? 1 : 0);
+    EEPROM.write(EEPROM_MAGIC_BYTE_ADDR, EEPROM_MAGIC_VALUE);
+    if (EEPROM.commit()) {
+        eeprom_success = true;
+        Serial.printf("✓ WiFi state backup saved to EEPROM: %s\n", enabled ? "ON" : "OFF");
+    } else {
+        Serial.println("✗ Failed to save WiFi state backup to EEPROM!");
+    }
+    EEPROM.end();
+    
+    if (nvs_success || eeprom_success) {
         wifiEnabled = enabled;
         wifiEnabledCached = true;
-        Serial.printf("WiFi enabled state saved: %s\n", enabled ? "ON" : "OFF");
+        Serial.println("WiFi state persistence: SUCCESS");
     } else {
-        showFilesystemErrorIfNeeded();
-        // Still update in-memory state
+        Serial.println("WiFi state persistence: FAILED - using in-memory fallback");
         wifiEnabled = enabled;
         wifiEnabledCached = true;
     }
@@ -725,14 +808,50 @@ bool isWiFiEnabled() {
     return wifiEnabled;
 }
 
+void resetWiFiEnabledState() {
+    Serial.println("RESETTING WiFi state from all storage...");
+    
+    // Clear NVS
+    if (wifiPrefs.begin("wifi", false)) {
+        wifiPrefs.remove("enabled");
+        wifiPrefs.end();
+        Serial.println("✓ WiFi state cleared from NVS");
+    }
+    
+    // Clear EEPROM 
+    EEPROM.begin(512);
+    EEPROM.write(EEPROM_WIFI_ENABLED_ADDR, 0xFF); // Invalid value
+    EEPROM.write(EEPROM_MAGIC_BYTE_ADDR, 0x00);   // Clear magic byte
+    if (EEPROM.commit()) {
+        Serial.println("✓ WiFi state cleared from EEPROM");
+    }
+    EEPROM.end();
+    
+    // Clear cache
+    wifiEnabledCached = false;
+    wifiEnabled = true; // Reset to default
+    
+    Serial.println("WiFi state reset complete - next boot will use defaults");
+}
+
 void enableWiFi() {
     Serial.println("Enabling WiFi...");
     
     // Save the enabled state
     saveWiFiEnabledState(true);
     
-    // If WiFi was previously off, restore it
+    // If WiFi was previously off, restore it properly
     if (WiFi.getMode() == WIFI_OFF) {
+        // Restart ESP-IDF WiFi subsystem if it was stopped
+        #ifdef ESP_IDF_VERSION_MAJOR
+            esp_err_t result = esp_wifi_start();
+            if (result == ESP_OK) {
+                Serial.println("ESP-IDF WiFi subsystem restarted");
+            }
+        #endif
+        
+        delay(100); // Allow subsystem to initialize
+        
         // Try to restore to STA mode first if we have credentials
         if (loadWiFiCredentialsFromEEPROM() && !cachedSSID.isEmpty()) {
             Serial.println("Attempting to reconnect to saved network...");
@@ -787,7 +906,18 @@ void disableWiFi() {
     // Now safely turn off WiFi
     WiFi.mode(WIFI_OFF);
     
-    Serial.println("WiFi disabled - battery saving mode active");
+    // Additional ESP-IDF level power management for maximum power savings
+    #ifdef ESP_IDF_VERSION_MAJOR
+        esp_err_t result = esp_wifi_stop();
+        if (result == ESP_OK) {
+            Serial.println("ESP-IDF WiFi subsystem stopped for maximum power saving");
+        }
+    #endif
+    
+    // Final delay to ensure all hardware is in low-power state
+    delay(100);
+    
+    Serial.println("WiFi disabled - maximum battery saving mode active");
 }
 
 void toggleWiFi() {

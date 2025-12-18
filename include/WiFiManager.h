@@ -16,6 +16,8 @@ void loadWiFiCredentials(char* ssid, char* password, size_t maxLen);
 bool loadWiFiCredentialsFromEEPROM(); // Load and cache WiFi credentials from EEPROM
 String getStoredSSID();
 String getStoredPassword();
+void setupWiFi(); // Setup WiFi based on saved preferences
+void setupWiFiForced(); // Force WiFi setup regardless of saved state (for power optimization)
 void setupmDNS(); // Setup mDNS for weighmybru.local hostname
 void printWiFiStatus(); // Print detailed WiFi status for debugging
 void maintainWiFi(); // Periodic WiFi maintenance to ensure AP stability
@@ -33,5 +35,6 @@ void disableWiFi(); // Disable WiFi completely to save battery
 void toggleWiFi(); // Toggle WiFi on/off
 bool loadWiFiEnabledState(); // Load WiFi enabled state from preferences
 void saveWiFiEnabledState(bool enabled); // Save WiFi enabled state to preferences
+void resetWiFiEnabledState(); // Clear WiFi state from all storage (debug function)
 
 #endif

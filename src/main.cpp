@@ -3,6 +3,10 @@
 #include <LittleFS.h>
 #include <ESPmDNS.h>
 #include <esp_sleep.h>
+#ifdef ESP_IDF_VERSION_MAJOR
+    #include "esp_wifi.h"
+    #include "esp_err.h"
+#endif
 #include "WebServer.h"
 #include "Scale.h"
 #include "WiFiManager.h"
@@ -36,6 +40,10 @@ BatteryMonitor batteryMonitor(batteryPin);
 void setup() {
   Serial.begin(115200);
   
+  // Set CPU frequency explicitly for power optimization
+  setCpuFrequencyMhz(80);
+  Serial.printf("CPU frequency set to: %dMHz for power optimization\n", getCpuFrequencyMhz());
+  
   // Version and board identification
   Serial.println("=================================");
   Serial.printf("WeighMyBru² v%s\n", WEIGHMYBRU_VERSION_STRING);
@@ -43,6 +51,7 @@ void setup() {
   Serial.printf("Build: %s %s\n", WEIGHMYBRU_BUILD_DATE, WEIGHMYBRU_BUILD_TIME);
   Serial.printf("Full Version: %s\n", WEIGHMYBRU_FULL_VERSION);
   Serial.printf("Flash Size: %dMB\n", FLASH_SIZE_MB);
+  Serial.printf("CPU Frequency: %dMHz (Power Optimized)\n", getCpuFrequencyMhz());
   Serial.println("=================================");
   
   // Link scale and flow rate for tare operation coordination
@@ -81,6 +90,9 @@ void setup() {
     Serial.println("All functionality remains available via web interface.");
   } else {
     Serial.println("Display initialized - ready for visual feedback");
+    // Set reduced brightness for power optimization
+    oledDisplay.setBrightness(128);  // 50% brightness vs 255 max
+    Serial.println("Display brightness set to 50% for power optimization");
   }
   
   // Check wake-up reason and show appropriate message
@@ -109,12 +121,26 @@ void setup() {
   //Wait for BLE to finish intitalizing before starting WiFi
   delay(1500); 
   
+  // Initialize WiFi power management BEFORE any WiFi operations
+  Serial.println("Initializing WiFi power management...");
+  
+  // CRITICAL: Force WiFi completely off first to ensure clean state
+  WiFi.disconnect(true);
+  WiFi.mode(WIFI_OFF);
+  delay(1000); // Allow hardware to fully reset
+  
+  // Debug: Uncomment the next line to force reset WiFi state for testing
+  // resetWiFiEnabledState(); // DISABLED - state has been cleared
+  
   // ALWAYS enable WiFi power management for optimal battery life
-  // This works regardless of WiFi mode (STA/AP/OFF) and should be set early
   WiFi.setSleep(true);
   Serial.println("WiFi power management enabled for battery optimization");
   
-  setupWiFi();
+  // CRITICAL: Always setup WiFi first (like tare button scenario)
+  // This ensures all WiFi subsystems are properly initialized
+  // Then disable it cleanly if needed (replicating tare button sequence)
+  Serial.println("FORCING WiFi initialization to replicate tare button scenario...");
+  setupWiFiForced(); // Use forced setup to bypass state checks
 
   // Wait for WiFi to fully stabilize after BLE is already running
   delay(1500);
@@ -176,14 +202,33 @@ void setup() {
   touchSensor.setFlowRate(&flowRate);
 
   setupWebServer(scale, flowRate, bluetoothScale, oledDisplay, batteryMonitor);
+  
+  // CRITICAL: After full initialization, check if WiFi should be disabled
+  // This exactly replicates the tare button scenario: WiFi started, then disabled
+  Serial.println("=== POST-INITIALIZATION WiFi STATE CHECK ===");
+  if (!loadWiFiEnabledState()) {
+    Serial.println("WiFi should be disabled - applying clean shutdown like tare button");
+    Serial.println("(WiFi was initialized first, now disabling cleanly)");
+    
+    // Small delay to ensure all systems are stable (like tare button timing)
+    delay(100);
+    
+    // Now call disableWiFi() exactly like tare button does
+    disableWiFi();
+    
+    Serial.println("WiFi cleanly disabled - 0.05A power consumption expected");
+  } else {
+    Serial.println("WiFi should remain enabled - no action needed");
+  }
 }
 
 void loop() {
   static unsigned long lastWeightUpdate = 0;
   static unsigned long lastWiFiCheck = 0;
+  static unsigned long lastDisplayUpdate = 0;
   
-  // Update weight at optimal frequency for brewing accuracy
-  if (millis() - lastWeightUpdate >= 20) { // Update every 20ms (50Hz) - still very responsive
+  // Update weight at reduced frequency for power optimization
+  if (millis() - lastWeightUpdate >= 50) { // Reduced from 20ms to 50ms (20Hz from 50Hz)
     float weight = scale.getWeight();
     flowRate.update(weight);
     lastWeightUpdate = millis();
@@ -200,8 +245,8 @@ void loop() {
   // Maintain WiFi AP stability
   maintainWiFi();
   
-  // Update Bluetooth less frequently to reduce BLE interference
-  if (millis() - lastBLEUpdate >= 50) { // Update every 50ms (20Hz) - sufficient for app responsiveness
+  // Update Bluetooth less frequently to reduce BLE interference and power usage
+  if (millis() - lastBLEUpdate >= 100) { // Reduced from 50ms to 100ms (10Hz from 20Hz)
     bluetoothScale.update();
     lastBLEUpdate = millis();
   }
@@ -215,9 +260,12 @@ void loop() {
   // Update battery monitor
   batteryMonitor.update();
   
-  // Update display
-  oledDisplay.update();
+  // Update display less frequently for power saving
+  if (millis() - lastDisplayUpdate >= 100) { // Reduced display refresh rate to 10Hz
+    oledDisplay.update();
+    lastDisplayUpdate = millis();
+  }
   
-  // Balanced delay for responsive readings without system overload
-  delay(25); // Increased from 5ms to 25ms to reduce BLE interference and system load
+  // Increased delay for better power efficiency while maintaining responsiveness
+  delay(10); // Optimized delay: 10ms for good responsiveness with power savings
 }
