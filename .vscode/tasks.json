@@ -134,6 +134,76 @@
 				"$platformio"
 			],
 			"group": "build"
+		},
+		{
+			"label": "Build",
+			"type": "shell",
+			"command": "C:\\Users\\robbj\\.platformio\\penv\\Scripts\\platformio.exe",
+			"args": [
+				"run"
+			],
+			"problemMatcher": [
+				"$platformio"
+			],
+			"group": "build"
+		},
+		{
+			"label": "Upload",
+			"type": "shell",
+			"command": "C:\\Users\\robbj\\.platformio\\penv\\Scripts\\platformio.exe",
+			"args": [
+				"run",
+				"--target",
+				"upload",
+				"--upload-port",
+				"COM5"
+			],
+			"problemMatcher": [
+				"$platformio"
+			],
+			"group": "build"
+		},
+		{
+			"label": "Upload Filesystem",
+			"type": "shell",
+			"command": "C:\\Users\\robbj\\.platformio\\penv\\Scripts\\platformio.exe",
+			"args": [
+				"run",
+				"--target",
+				"uploadfs"
+			],
+			"isBackground": false,
+			"problemMatcher": [
+				"$platformio"
+			],
+			"group": "build"
+		},
+		{
+			"label": "Upload Firmware",
+			"type": "shell",
+			"command": "C:\\Users\\robbj\\.platformio\\penv\\Scripts\\platformio.exe",
+			"args": [
+				"run",
+				"--target",
+				"upload"
+			],
+			"isBackground": false,
+			"problemMatcher": [
+				"$platformio"
+			],
+			"group": "build"
+		},
+		{
+			"label": "Serial Monitor",
+			"type": "shell",
+			"command": "C:\\Users\\robbj\\.platformio\\penv\\Scripts\\platformio.exe",
+			"args": [
+				"device",
+				"monitor"
+			],
+			"isBackground": true,
+			"problemMatcher": [],
+			"group": "test"
 		}
 	]
 }

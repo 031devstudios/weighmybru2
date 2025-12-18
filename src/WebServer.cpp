@@ -470,6 +470,12 @@ void setupWebServer(Scale &scale, FlowRate &flowRate, BluetoothScale &bluetoothS
     }
   });
 
+  // WiFi Network Scanning
+  server.on("/api/wifi-scan", HTTP_GET, [](AsyncWebServerRequest *request) {
+    String scanResult = scanWiFiNetworks();
+    request->send(200, "application/json", scanResult);
+  });
+
   // Device information endpoint
   server.on("/api/device/info", HTTP_GET, [](AsyncWebServerRequest *request) {
     String json = "{";

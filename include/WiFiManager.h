@@ -28,6 +28,7 @@ void applyAPModePowerOptimization(); // Apply power optimizations specifically f
 int getWiFiSignalStrength(); // Get current WiFi signal strength in dBm
 String getWiFiSignalQuality(); // Get WiFi signal quality description
 String getWiFiConnectionInfo(); // Get detailed WiFi connection information
+String scanWiFiNetworks(); // Scan for available WiFi networks and return JSON
 
 // WiFi Power Management
 bool isWiFiEnabled(); // Check if WiFi is currently enabled

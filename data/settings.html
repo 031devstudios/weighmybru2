@@ -43,8 +43,16 @@
       </div>
       
       <form id="wifiForm" class="mb-6">
+        <!-- WiFi Network Scanner -->
+        <div class="mb-4 p-3 bg-black-hover rounded">
+          <h3 class="text-lg font-semibold mb-2">Available Networks</h3>
+          <button type="button" onclick="scanNetworks()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded mb-2">Scan Networks</button>
+          <span id="scanStatus" class="text-gray-400 ml-2"></span>
+          <div id="networkList" class="mt-2"></div>
+        </div>
+        
         <label for="ssid" class="block mb-2">SSID:</label>
-        <input type="text" id="ssid" name="ssid" required class="w-full px-3 py-2 mb-4 rounded text-black" />
+        <input type="text" id="ssid" name="ssid" required class="w-full px-3 py-2 mb-4 rounded text-black" placeholder="Enter network name or select from scan above" />
         <label for="password" class="block mb-2">Password:</label>
         <input type="password" id="password" name="password" required class="w-full px-3 py-2 mb-4 rounded text-black" />
         <button type="submit" class="bg-gray-600 hover:bg-button-green active:bg-green-900 text-white px-4 py-2 rounded">Save WiFi Settings</button>
@@ -143,18 +151,37 @@
     // Handle WiFi form submission
     document.getElementById('wifiForm').addEventListener('submit', async (e) => {
       e.preventDefault();
-      const ssid = document.getElementById('ssid').value.trim();
-      const password = document.getElementById('password').value.trim();
-      const params = new URLSearchParams();
-      params.append('ssid', ssid);
-      params.append('password', password);
-      const response = await fetch('/api/wifi-creds', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: params.toString()
-      });
-      const result = await response.text();
-      document.getElementById('message').textContent = result;
+      const messageEl = document.getElementById('message');
+      const statusEl = document.getElementById('status');
+      
+      try {
+        const ssid = document.getElementById('ssid').value.trim();
+        const password = document.getElementById('password').value.trim();
+        
+        if (!ssid) {
+          statusEl.textContent = 'Please enter an SSID';
+          messageEl.textContent = '';
+          return;
+        }
+        
+        messageEl.textContent = 'Scale is rebooting to apply WiFi changes...';
+        statusEl.textContent = '';
+        
+        const params = new URLSearchParams();
+        params.append('ssid', ssid);
+        params.append('password', password);
+        
+        fetch('/api/wifi-creds', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: params.toString()
+        });
+        
+      } catch (error) {
+        // Show reboot message regardless
+        messageEl.textContent = 'Scale is rebooting to apply WiFi changes...';
+        statusEl.textContent = '';
+      }
     });
 
     // WiFi Power Management Functions
@@ -260,6 +287,120 @@
         document.getElementById('averageSamples').value = 40;      // Higher default for smoother readings
         document.getElementById('filterForm').dispatchEvent(new Event('submit'));
       }
+    }
+
+    // WiFi Network Scanning Functions
+    async function scanNetworks() {
+      const scanButton = event.target;
+      const scanStatus = document.getElementById('scanStatus');
+      
+      scanButton.disabled = true;
+      scanButton.textContent = 'Scanning...';
+      scanStatus.textContent = 'Scanning for networks...';
+      
+      try {
+        const response = await fetch('/api/wifi-scan');
+        const data = await response.json();
+        
+        displayNetworks(data.networks);
+        scanStatus.textContent = `Found ${data.count} networks`;
+      } catch (error) {
+        console.error('Scan error:', error);
+        scanStatus.textContent = 'Scan failed';
+        document.getElementById('networkList').innerHTML = '<p class="text-red-400">Error scanning networks</p>';
+      } finally {
+        scanButton.disabled = false;
+        scanButton.textContent = 'Scan Networks';
+      }
+    }
+
+    function displayNetworks(networks) {
+      const networkList = document.getElementById('networkList');
+      
+      if (!networks || networks.length === 0) {
+        networkList.innerHTML = '<p class="text-gray-400">No networks found</p>';
+        return;
+      }
+      
+      // Sort networks by signal strength (RSSI)
+      networks.sort((a, b) => b.rssi - a.rssi);
+      
+      let html = '<div class="max-h-40 overflow-y-auto border border-gray-600 rounded" style="cursor: default;">';
+      
+      networks.forEach(network => {
+        if (!network.ssid || network.ssid.trim() === '') return; // Skip empty SSIDs
+        
+        const signalStrength = getSignalStrength(network.rssi);
+        const securityType = getSecurityType(network.encryption);
+        const signalBars = getSignalBars(network.rssi);
+        
+        html += `
+          <div class="flex items-center justify-between p-2 border-b border-gray-700 hover:bg-gray-600 hover:text-white transition-colors duration-200" 
+               style="cursor: pointer;"
+               onclick="selectNetwork('${network.ssid.replace(/'/g, "\\'")}')">
+            <div class="flex-1">
+              <div class="font-semibold">${escapeHtml(network.ssid)}</div>
+              <div class="text-sm text-gray-400">
+                ${securityType} • Channel ${network.channel} • ${signalStrength}
+              </div>
+            </div>
+            <div class="text-right text-sm">
+              <div class="text-gray-400">${signalBars}</div>
+              <div class="text-gray-500">${network.rssi} dBm</div>
+            </div>
+          </div>
+        `;
+      });
+      
+      html += '</div>';
+      networkList.innerHTML = html;
+    }
+
+    function selectNetwork(ssid) {
+      document.getElementById('ssid').value = ssid;
+      document.getElementById('password').focus();
+    }
+
+    function getSignalStrength(rssi) {
+      if (rssi >= -30) return 'Excellent';
+      if (rssi >= -50) return 'Very Good';
+      if (rssi >= -60) return 'Good';
+      if (rssi >= -70) return 'Fair';
+      return 'Poor';
+    }
+
+    function getSignalBars(rssi) {
+      const emptyCircle = '<span style="color: #374151; font-size: 1.2em;">⬤</span>';
+      
+      if (rssi >= -60) {
+        // Green - 3 filled circles (strong signal)
+        return '<span style="color: #10b981; font-size: 1.2em;">⬤⬤⬤</span>';
+      } else if (rssi >= -75) {
+        // Orange - 2 filled + 1 empty (fair signal)
+        return '<span style="color: #fb923c; font-size: 1.2em;">⬤⬤</span>' + emptyCircle;
+      } else {
+        // Red - 1 filled + 2 empty (poor signal)
+        return '<span style="color: #ef4444; font-size: 1.2em;">⬤</span>' + emptyCircle + emptyCircle;
+      }
+    }
+
+    function getSecurityType(encType) {
+      switch(encType) {
+        case 0: return 'Open';
+        case 2: return 'WPA/PSK';
+        case 3: return 'WPA2/PSK';
+        case 4: return 'WPA/WPA2/PSK';
+        case 5: return 'WPA2/Enterprise';
+        case 7: return 'WPA3/PSK';
+        case 8: return 'WPA2/WPA3/PSK';
+        default: return 'Unknown';
+      }
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
     }
 
     // Initialize WiFi status on page load

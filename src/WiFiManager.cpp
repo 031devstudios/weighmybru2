@@ -794,6 +794,40 @@ String getWiFiConnectionInfo() {
     return info;
 }
 
+// Scan for available WiFi networks and return JSON
+String scanWiFiNetworks() {
+    Serial.println("Scanning for WiFi networks...");
+    
+    // Perform WiFi scan
+    int networksFound = WiFi.scanNetworks();
+    
+    String json = "{\"networks\":[";
+    
+    if (networksFound > 0) {
+        for (int i = 0; i < networksFound; i++) {
+            if (i > 0) json += ",";
+            
+            json += "{";
+            json += "\"ssid\":\"" + WiFi.SSID(i) + "\",";
+            json += "\"rssi\":" + String(WiFi.RSSI(i)) + ",";
+            json += "\"encryption\":" + String(WiFi.encryptionType(i)) + ",";
+            json += "\"channel\":" + String(WiFi.channel(i));
+            json += "}";
+        }
+        
+        Serial.println("Found " + String(networksFound) + " networks");
+    } else {
+        Serial.println("No networks found");
+    }
+    
+    json += "],\"count\":" + String(networksFound) + "}";
+    
+    // Clean up scan results
+    WiFi.scanDelete();
+    
+    return json;
+}
+
 // WiFi Power Management Functions
 
 bool loadWiFiEnabledState() {
