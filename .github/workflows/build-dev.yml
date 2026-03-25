@@ -7,6 +7,30 @@ on:
     branches: [ main, master, develop ]
     
 jobs:
+  unit-tests:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.x'
+        
+    - name: Install PlatformIO
+      run: |
+        pip install platformio
+        
+    - name: Run unit tests
+      run: |
+        pio test -e native -v
+        
+    - name: Test summary
+      run: |
+        echo "✅ Unit tests completed"
+
   test-build:
     runs-on: ubuntu-latest
     
