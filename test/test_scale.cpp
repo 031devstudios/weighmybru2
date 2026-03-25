@@ -1,5 +1,53 @@
-#include <Arduino.h>
-#include <unity.h>
+// Lightweight test framework for native testing
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <math.h>
+
+static int tests_run = 0;
+static int tests_failed = 0;
+
+#define TEST_ASSERT_TRUE(condition) do { \
+    tests_run++; \
+    if (!(condition)) { \
+        printf("FAIL: %s:%d: %s\n", __FILE__, __LINE__, #condition); \
+        tests_failed++; \
+    } \
+} while(0)
+
+#define TEST_ASSERT_EQUAL_INT(expected, actual) do { \
+    tests_run++; \
+    if ((expected) != (actual)) { \
+        printf("FAIL: %s:%d: Expected %d, got %d\n", __FILE__, __LINE__, (int)(expected), (int)(actual)); \
+        tests_failed++; \
+    } \
+} while(0)
+
+#define TEST_ASSERT_EQUAL_FLOAT(expected, actual) do { \
+    tests_run++; \
+    if (fabs((expected) - (actual)) > 0.001f) { \
+        printf("FAIL: %s:%d: Expected %f, got %f\n", __FILE__, __LINE__, (float)(expected), (float)(actual)); \
+        tests_failed++; \
+    } \
+} while(0)
+
+#define TEST_ASSERT_EQUAL_FLOAT_ARRAY(expected, actual, len) do { \
+    tests_run++; \
+    for (int i = 0; i < (len); i++) { \
+        if (fabs((expected)[i] - (actual)[i]) > 0.001f) { \
+            printf("FAIL: %s:%d: Array mismatch at index %d\n", __FILE__, __LINE__, i); \
+            tests_failed++; \
+            break; \
+        } \
+    } \
+} while(0)
+
+#define RUN_TEST(func) do { \
+    printf("Running %s...\n", #func); \
+    func(); \
+} while(0)
+
+#define TEST_ASSERT_FALSE(condition) TEST_ASSERT_TRUE(!(condition))
 
 // Mock Scale class for testing filtering logic
 class MockScale {
@@ -154,8 +202,9 @@ void test_circular_buffer_wrapping(void) {
     TEST_ASSERT_EQUAL_FLOAT(250.0f, result);
 }
 
-void setup() {
-    UNITY_BEGIN();
+int main() {
+    printf("Running Scale Filter Tests...\n");
+    printf("========================================\n");
 
     RUN_TEST(test_median_filter_single_value);
     RUN_TEST(test_median_filter_three_values_sorted);
@@ -167,8 +216,14 @@ void setup() {
     RUN_TEST(test_average_filter_four_values);
     RUN_TEST(test_circular_buffer_wrapping);
 
-    UNITY_END();
-}
-
-void loop() {
+    printf("========================================\n");
+    printf("Tests run: %d, Failed: %d\n", tests_run, tests_failed);
+    
+    if (tests_failed == 0) {
+        printf("All tests PASSED!\n");
+        return 0;
+    } else {
+        printf("Some tests FAILED!\n");
+        return 1;
+    }
 }
