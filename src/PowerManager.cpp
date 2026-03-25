@@ -1,8 +1,13 @@
 #include "PowerManager.h"
 #include "Display.h"
+#include "Scale.h"
+#include "soc/rtc.h"
+#include "soc/rtc_cntl_reg.h"
+#include "driver/rtc_io.h"
 
-PowerManager::PowerManager(uint8_t sleepTouchPin, Display* display) 
-    : sleepTouchPin(sleepTouchPin), displayPtr(display), sleepTouchThreshold(0),
+
+PowerManager::PowerManager(uint8_t sleepTouchPin, uint8_t clockPin, Display* display) 
+    : sleepTouchPin(sleepTouchPin), clockPin(clockPin), displayPtr(display), sleepTouchThreshold(0),
       lastSleepTouchState(false), lastSleepTouchTime(0), touchStartTime(0),
       debounceDelay(200), sleepCountdownStart(0), sleepCountdownActive(false),
       longPressDetected(false), cancelledRecently(false), cancelTime(0),
@@ -13,14 +18,7 @@ void PowerManager::begin() {
     // Set up the pin as digital input with pull-down resistor for the digital touch sensor module
     // This prevents false triggers when no touch sensor is connected
     pinMode(sleepTouchPin, INPUT_PULLDOWN);
-    
-    // Configure external wake-up on the touch pin
-    // Wake up when pin goes HIGH (touch sensor outputs HIGH when touched)
-    esp_sleep_enable_ext0_wakeup((gpio_num_t)sleepTouchPin, 1);
-    
-    Serial.println("Power Manager initialized. Sleep touch sensor on GPIO" + String(sleepTouchPin));
-    Serial.println("Using EXT0 wake-up (digital touch sensor) with pull-down resistor");
-    Serial.println("Device will wake up when touch sensor outputs HIGH");
+    Serial.println("Power Manager initialized");
 }
 
 void PowerManager::update() {
@@ -108,14 +106,22 @@ void PowerManager::enterDeepSleep() {
         displayPtr->showGoingToSleepMessage();
         delay(2000);
         displayPtr->clear();
+        displayPtr->setPowerSave(1);
     }
     
     // Print wake-up configuration for debugging
-    Serial.println("Wake-up configured for EXT0 on GPIO" + String(sleepTouchPin));
+    Serial.println("Wake-up configured for EXT1 on GPIO" + String(sleepTouchPin));
     Serial.println("Will wake when pin goes HIGH");
     
     // Flush serial output
     Serial.flush();
+
+    // Hold the scales clock pin high to turn it off
+    digitalWrite(clockPin, HIGH);
+    gpio_hold_en((gpio_num_t) clockPin);
+
+    // Configure touch wake up
+    esp_sleep_enable_ext1_wakeup(1ULL << sleepTouchPin, ESP_EXT1_WAKEUP_ANY_HIGH);
     
     // Enter deep sleep - will wake up on external signal
     esp_deep_sleep_start();

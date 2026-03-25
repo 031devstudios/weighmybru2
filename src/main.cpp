@@ -15,29 +15,40 @@
 #include "BluetoothScale.h"
 #include "TouchSensor.h"
 #include "Display.h"
+#include "BoardConfig.h"
 #include "PowerManager.h"
 #include "BatteryMonitor.h"
-#include "BoardConfig.h"
 #include "Version.h"
 
 // Board-specific pin configuration
-uint8_t dataPin = HX711_DATA_PIN;     // HX711 Data pin
-uint8_t clockPin = HX711_CLOCK_PIN;   // HX711 Clock pin  
-uint8_t touchPin = TOUCH_TARE_PIN;    // Touch sensor for tare
-uint8_t sleepTouchPin = TOUCH_SLEEP_PIN;  // Touch sensor for sleep functionality
-uint8_t batteryPin = BATTERY_PIN;     // Battery voltage monitoring
-uint8_t sdaPin = I2C_SDA_PIN;         // I2C Data pin for display
-uint8_t sclPin = I2C_SCL_PIN;         // I2C Clock pin for display
+uint8_t dataPin = HX711_DATA_PIN;                 // HX711 Data pin
+uint8_t clockPin = HX711_CLOCK_PIN;               // HX711 Clock pin  
+uint8_t touchPin = TOUCH_TARE_PIN;                // Touch sensor for tare
+uint8_t sleepTouchPin = TOUCH_SLEEP_PIN;          // Touch sensor for sleep functionality
+uint8_t batteryPin = BATTERY_PIN;                 // Battery voltage monitoring
+uint8_t sdaPin = I2C_SDA_PIN;                     // I2C Data pin for display
+uint8_t sclPin = I2C_SCL_PIN;                     // I2C Clock pin for display
+uint8_t oledPowerPin = OLED_POWER_PIN;            // Power control for OLED display
+uint8_t touchTarePowerPin = TOUCH_TARE_POWER_PIN; // Power control for tare touch sensor
 float calibrationFactor = 4195.712891;
 Scale scale(dataPin, clockPin, calibrationFactor);
 FlowRate flowRate;
 BluetoothScale bluetoothScale;
 TouchSensor touchSensor(touchPin, &scale);
 Display oledDisplay(sdaPin, sclPin, &scale, &flowRate);
-PowerManager powerManager(sleepTouchPin, &oledDisplay);
+PowerManager powerManager(sleepTouchPin, clockPin, &oledDisplay);
 BatteryMonitor batteryMonitor(batteryPin);
 
 void setup() {
+  // Activate pins to power tare sensor and OLED display, they become high impedance during sleep
+  pinMode(touchTarePowerPin, OUTPUT);
+  digitalWrite(touchTarePowerPin, HIGH);
+  pinMode(oledPowerPin, OUTPUT);
+  digitalWrite(oledPowerPin, HIGH);
+
+  // disable GPIO hold from previous sleep cycles to ensure scales are active
+  gpio_hold_dis((gpio_num_t) clockPin);
+
   Serial.begin(115200);
   
   // Set CPU frequency explicitly for power optimization
@@ -205,7 +216,7 @@ void setup() {
     }
     
     Serial.println("Forcing deep sleep now...");
-    esp_deep_sleep_start();
+    powerManager.enterDeepSleep();
   }
   
   Serial.printf("Battery voltage OK (%.2fV) - continuing boot\n", batteryVoltage);

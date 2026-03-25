@@ -614,6 +614,10 @@ void Display::showIPAddresses() {
     delay(1000); // Show ready message for 1 second, then continue to normal display
 }
 
+void Display::setPowerSave(bool enable) {
+    display->ssd1306_command(enable ? 0xae : 0xaf);
+}
+
 void Display::clear() {
     // Return early if display is not connected
     if (!displayConnected) {
