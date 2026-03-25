@@ -2,10 +2,14 @@
 
 This document outlines the improved build and release process that automates website deployment.
 
-## 🎯 Quick Start (Recommended)
+## 🎯 Quick Start
 
-For the best experience, use the **PowerShell version** which includes interactive prompts and better error handling:
+### Linux / macOS
+```bash
+./build-and-release.sh
+```
 
+### Windows (PowerShell - Recommended)
 ```powershell
 .\build-and-release.ps1
 ```
@@ -15,51 +19,69 @@ This single command will:
 2. ✅ Extract version from `Version.h`
 3. ✅ Copy files to website releases directory
 4. ✅ Update release index
-5. ✅ Optionally auto-commit and push to GitHub
-6. ✅ Auto-deploy to Cloudflare
+5. ✅ Auto-deploy to Cloudflare (manual git push)
 
 ## 📋 Available Scripts
 
-### 1. Enhanced Build & Release (PowerShell) - **RECOMMENDED**
+### 1. Enhanced Build & Release
+
+**Linux / macOS:**
+```bash
+./build-and-release.sh [options]
+```
+
+**Windows (PowerShell - Recommended):**
 ```powershell
 .\build-and-release.ps1 [options]
 ```
 
-**Options:**
-- `-Clean` - Clean build directories first
-- `-Release` - Build release version
-- `-Version "2.3.0"` - Set specific version (overrides Version.h)
-- `-BuildNumber "123"` - Set custom build number
-
-**Examples:**
-```powershell
-# Standard release build (auto-detects version from Version.h)
-.\build-and-release.ps1 -Release
-
-# Development build with clean
-.\build-and-release.ps1 -Clean
-
-# Custom version override
-.\build-and-release.ps1 -Release -Version "2.3.0-beta"
-```
-
-### 2. Enhanced Build & Release (Batch)
+**Windows (Batch):**
 ```cmd
 build-and-release.bat [options]
 ```
 
-Same as PowerShell version but without interactive prompts.
+**Options:**
+| Linux/macOS | Windows | Description |
+|-------------|---------|-------------|
+| `--clean` | `-Clean` | Clean build directories first |
+| `--release` | `-Release` | Build release version |
+| `--help` | `-Help` | Show help |
 
-### 3. Original Build Script
+**Examples:**
+```bash
+# Standard release build (auto-detects version from Version.h)
+./build-and-release.sh --release
+
+# Development build with clean
+./build-and-release.sh --clean
+
+# Windows PowerShell
+.\build-and-release.ps1 -Release
+.\build-and-release.ps1 -Clean
+```
+
+### 2. Original Build Script (Firmware Only)
+
+**Linux / macOS:**
+```bash
+./build.sh [options]
+```
+
+**Windows:**
 ```cmd
 build.bat [options]
 ```
 
-The original build script - still works but doesn't handle website deployment.
+### 3. Website Release Sync (Linux/macOS only)
+
+Downloads latest GitHub release to website:
+```bash
+./website/sync-releases.sh
+```
 
 ## 🔄 Automated Workflow
 
-When you run `build-and-release.ps1`, here's what happens:
+When you run `build-and-release.sh` or `build-and-release.ps1`, here's what happens:
 
 ```mermaid
 graph TD
@@ -69,13 +91,8 @@ graph TD
     D --> E[Copy Manifest Files]
     E --> F[Copy Firmware Binaries]  
     F --> G[Update releases/index.json]
-    G --> H[Prompt: Auto-commit?]
-    H --> I{User Choice}
-    I -->|Yes| J[git add, commit, push]
-    I -->|No| K[Show Manual Instructions]
-    J --> L[✅ Live on Cloudflare!]
-    K --> M[Manual: git add, commit, push]
-    M --> L
+    G --> H[Manual: git add, commit, push]
+    H --> I[✅ Live on Cloudflare!]
 ```
 
 ## 📁 Generated File Structure
@@ -126,36 +143,43 @@ Results in version: `2.2.0`
 
 ## 🚀 Deployment to Cloudflare
 
-### Auto-Deployment (Recommended)
-When prompted "Would you like to automatically commit and push these changes? (y/N)":
-- Type `y` to auto-commit and push
-- Your Cloudflare site updates within 2-3 minutes
-
 ### Manual Deployment
+After running the build script, manually commit and push:
+
+**Linux/macOS:**
 ```bash
 git add website/releases/
 git commit -m "Release v2.2.0 - Updated firmware manifests"
 git push
 ```
 
+**Windows:**
+```cmd
+git add website/releases/
+git commit -m "Release v2.2.0 - Updated firmware manifests"
+git push
+```
+
+Your Cloudflare site will auto-update within 2-3 minutes.
+
 ## 🔧 Updating to New Version
 
 ### For Minor Updates (bug fixes, small features):
 1. Update version in [include/Version.h](include/Version.h)
-2. Run: `.\build-and-release.ps1 -Release`
-3. Choose auto-commit when prompted
+2. Run: `./build-and-release.sh --release` (Linux) or `.\build-and-release.ps1 -Release` (Windows)
+3. Commit and push manually
 4. ✅ Done! Live in ~3 minutes
 
 ### For Major Updates:
 1. Update version in [include/Version.h](include/Version.h)
-2. Test locally first: `.\build-and-release.ps1 -Clean`
-3. When ready: `.\build-and-release.ps1 -Release`
-4. Choose auto-commit when prompted
+2. Test locally first: `./build-and-release.sh --clean` (Linux) or `.\build-and-release.ps1 -Clean` (Windows)
+3. When ready: `./build-and-release.sh --release` (Linux) or `.\build-and-release.ps1 -Release` (Windows)
+4. Commit and push manually
 
 ## 🎯 Best Practices
 
 ### ✅ Do This:
-- Always use `build-and-release.ps1` for releases
+- Always use `build-and-release.sh` (Linux) or `build-and-release.ps1` (Windows) for releases
 - Update `Version.h` before building
 - Test locally before pushing
 - Use descriptive commit messages
@@ -169,8 +193,13 @@ git push
 ## 🛠️ Troubleshooting
 
 ### "Build failed with exit code 1"
-- Check PlatformIO is installed: `python -m platformio --version`
-- Try clean build: `.\build-and-release.ps1 -Clean`
+- Check PlatformIO is installed: `pio --version` (Linux) or `python -m platformio --version` (Windows)
+- Try clean build: `./build-and-release.sh --clean` (Linux) or `.\build-and-release.ps1 -Clean` (Windows)
+
+### "Script permission denied" (Linux/macOS)
+```bash
+chmod +x build.sh build-and-release.sh
+```
 
 ### "Git add failed"
 - Check git is working: `git status`
@@ -182,7 +211,7 @@ git push
 - Check GitHub repo has the new files
 - Clear browser cache
 
-### "PowerShell execution policy error"
+### "PowerShell execution policy error" (Windows)
 ```powershell
 Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 ```
