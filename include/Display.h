@@ -13,6 +13,8 @@ class BatteryMonitor; // Forward declaration
 
 class Display {
 public:
+    enum class TimerState { IDLE, RUNNING, STOPPED };
+    
     Display(uint8_t sdaPin, uint8_t sclPin, Scale* scale, FlowRate* flowRate);
     bool begin();
     bool isConnected() const { return displayConnected; } // Check if display is available
@@ -53,6 +55,28 @@ public:
     bool isTimerRunning() const;
     float getTimerSeconds() const;
     unsigned long getElapsedTime() const; // Get current elapsed time in milliseconds
+    TimerState getTimerState() const { return timerState; }
+    
+    // Auto Brew Timer management
+    void setAutoBrewTimerEnabled(bool enabled);
+    bool isAutoBrewTimerEnabled() const;
+    void setAutoBrewStartThreshold(float threshold);
+    float getAutoBrewStartThreshold() const;
+    void setAutoBrewSlopeThreshold(float threshold);
+    float getAutoBrewSlopeThreshold() const;
+    void showAutoBrewStatusMessage(bool isEnabled);
+    
+    // Called from main loop to update flow-based detection
+    void updateAutoBrewFlowDetection(float flowRate);
+    
+    // Called from tare handler to reset Auto Brew detection state
+    void resetAutoBrewDetection();
+    
+    // Dual-button toggle for Auto Brew Timer
+    // Returns true if tare should proceed, false if dual-button toggle was handled
+    bool onTareButtonShortPress();
+    // GPIO3 short press handler - returns true if timer control was fully handled (don't call handleTimerControl)
+    bool onSleepButtonShortPress();
     
 private:
     uint8_t sdaPin;
@@ -82,6 +106,24 @@ private:
     bool timerRunning;
     bool timerPaused;
     float lastFlowRate; // Store last flow rate for comparison
+    TimerState timerState; // IDLE, RUNNING, or STOPPED
+    
+    // Auto Brew Timer system - flow-based detection
+    bool autoBrewTimerEnabled;
+    bool autoBrewTimerActive;              // Timer was auto-started
+    float autoBrewStartThreshold;           // Flow rate threshold to trigger (default 0.7 g/s)
+    float autoBrewSlopeThreshold;           // Max slope for stable flow (default 0.5 g/s²)
+    bool autoBrewWaitingForStart;           // Waiting for flow to exceed threshold
+    bool autoBrewWaitingForStop;            // Waiting for flow to stop
+    float autoBrewFlowSamples[6];           // Last 6 flow rate samples for slope calc
+    unsigned long autoBrewFlowTimestamps[6]; // Timestamps for those samples
+    int autoBrewFlowSampleIndex;            // Circular buffer index
+    int autoBrewFlowSampleCount;            // Number of valid samples
+    
+    // Dual-button detection for Auto Brew Timer toggle
+    unsigned long lastTareButtonPressTime;
+    unsigned long lastSleepButtonPressTime;
+    static const unsigned long DUAL_BUTTON_WINDOW = 300; // 300ms window for dual press
     
     // Status page system
     bool showingStatusPage;
@@ -93,6 +135,9 @@ private:
     void setupDisplay();
     void drawBluetoothStatus(); // Draw Bluetooth connection status icon
     void drawBatteryStatus(); // Draw battery status with 3-segment indicator
+    float calculateAutoBrewFlowSlope(); // Calculate slope from sample buffer
+    void clearAutoBrewFlowSamples(); // Clear flow sample buffer
+    void addAutoBrewFlowSample(float flowRate); // Add sample to buffer
 };
 
 #endif

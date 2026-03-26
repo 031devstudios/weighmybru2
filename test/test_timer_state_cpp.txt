@@ -1,0 +1,294 @@
+// Timer State Machine Unit Tests
+// Tests the timer state machine logic in isolation (no hardware needed)
+// Run with: g++ -o /tmp/test tests/test_timer_state_cpp.txt && /tmp/test
+
+#ifdef ARDUINO
+#include <Arduino.h>
+#include <unity.h>
+#else
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdbool.h>
+#endif
+
+// Mimic the TimerState enum
+enum class TimerState { IDLE, RUNNING, STOPPED };
+
+// Mimic the timer variables
+struct TimerContext {
+    unsigned long timerStartTime;
+    unsigned long timerPausedTime;
+    bool timerRunning;
+    bool timerPaused;
+    TimerState timerState;
+    bool autoBrewTimerEnabled;
+    bool autoBrewWaitingForStart;
+    bool autoBrewWaitingForStop;
+    
+    // Mock functions
+    void startTimer() { 
+        timerRunning = true; 
+        timerPaused = false;
+        timerStartTime = 1000;
+    }
+    void stopTimer() { 
+        timerPaused = true; 
+        timerRunning = false;
+        timerPausedTime = timerStartTime > 0 ? 500 : 0;
+    }
+    void resetTimer() { 
+        timerStartTime = 0;
+        timerPausedTime = 0;
+        timerRunning = false;
+        timerPaused = false;
+    }
+    void resetAutoBrewDetection() {
+        autoBrewWaitingForStart = true;
+        autoBrewWaitingForStop = false;
+    }
+};
+
+// Global context for testing
+TimerContext ctx;
+
+// Test result tracking
+int tests_run = 0;
+int tests_passed = 0;
+int tests_failed = 0;
+
+#define TEST_ASSERT_EQUAL(expected, actual) \
+    do { \
+        tests_run++; \
+        if ((expected) == (actual)) { \
+            tests_passed++; \
+            printf("  PASS: %s == %s\n", #expected, #actual); \
+        } else { \
+            tests_failed++; \
+            printf("  FAIL: %s (expected %d, got %d)\n", #expected " == " #actual, (int)(expected), (int)(actual)); \
+        } \
+    } while(0)
+
+#define TEST_ASSERT_TRUE(actual) \
+    do { \
+        tests_run++; \
+        if (actual) { \
+            tests_passed++; \
+            printf("  PASS: %s is true\n", #actual); \
+        } else { \
+            tests_failed++; \
+            printf("  FAIL: %s is false (expected true)\n", #actual); \
+        } \
+    } while(0)
+
+#define TEST_ASSERT_FALSE(actual) \
+    do { \
+        tests_run++; \
+        if (!(actual)) { \
+            tests_passed++; \
+            printf("  PASS: %s is false\n", #actual); \
+        } else { \
+            tests_failed++; \
+            printf("  FAIL: %s is true (expected false)\n", #actual); \
+        } \
+    } while(0)
+
+// Simulate GPIO3 short press - returns true if timer control fully handled
+bool simulateGPIO3ShortPress() {
+    switch(ctx.timerState) {
+        case TimerState::IDLE:
+            ctx.startTimer();
+            ctx.timerState = TimerState::RUNNING;
+            printf("    [GPIO3] IDLE -> RUNNING\n");
+            return false;
+        case TimerState::RUNNING:
+            ctx.stopTimer();
+            ctx.timerState = TimerState::STOPPED;
+            printf("    [GPIO3] RUNNING -> STOPPED\n");
+            return false;
+        case TimerState::STOPPED:
+            ctx.resetTimer();
+            ctx.resetAutoBrewDetection();
+            ctx.timerState = TimerState::IDLE;
+            printf("    [GPIO3] STOPPED -> IDLE (fully handled)\n");
+            return true;
+    }
+    return false;
+}
+
+// Test 1: GPIO3 in IDLE starts timer
+void test_gpio3_idle_starts_timer() {
+    printf("\nTest 1: GPIO3 in IDLE starts timer\n");
+    ctx.timerState = TimerState::IDLE;
+    ctx.timerRunning = false;
+    
+    bool consumed = simulateGPIO3ShortPress();
+    
+    TEST_ASSERT_EQUAL(TimerState::RUNNING, ctx.timerState);
+    TEST_ASSERT_TRUE(ctx.timerRunning);
+    TEST_ASSERT_FALSE(consumed);
+}
+
+// Test 2: GPIO3 in RUNNING stops timer
+void test_gpio3_running_stops_timer() {
+    printf("\nTest 2: GPIO3 in RUNNING stops timer\n");
+    ctx.timerState = TimerState::RUNNING;
+    ctx.timerRunning = true;
+    
+    bool consumed = simulateGPIO3ShortPress();
+    
+    TEST_ASSERT_EQUAL(TimerState::STOPPED, ctx.timerState);
+    TEST_ASSERT_FALSE(consumed);
+}
+
+// Test 3: GPIO3 in STOPPED resets and returns true (fully handled)
+void test_gpio3_stopped_resets_and_returns_true() {
+    printf("\nTest 3: GPIO3 in STOPPED resets and returns true\n");
+    ctx.timerState = TimerState::STOPPED;
+    ctx.timerPaused = true;
+    
+    bool consumed = simulateGPIO3ShortPress();
+    
+    TEST_ASSERT_EQUAL(TimerState::IDLE, ctx.timerState);
+    TEST_ASSERT_TRUE(consumed);
+    TEST_ASSERT_FALSE(ctx.timerRunning);
+    TEST_ASSERT_FALSE(ctx.timerPaused);
+}
+
+// Test 4: Auto-brew only starts in IDLE state
+void test_auto_brew_only_starts_in_idle() {
+    printf("\nTest 4: Auto-brew should only start in IDLE state\n");
+    
+    // In IDLE - should start
+    ctx.timerState = TimerState::IDLE;
+    bool canAutoStart = (ctx.timerState == TimerState::IDLE && ctx.autoBrewWaitingForStart);
+    printf("    IDLE state: canAutoStart=%d\n", canAutoStart);
+    TEST_ASSERT_TRUE(canAutoStart);
+    
+    // In RUNNING - should NOT start
+    ctx.timerState = TimerState::RUNNING;
+    bool canAutoStartRunning = (ctx.timerState == TimerState::IDLE && ctx.autoBrewWaitingForStart);
+    printf("    RUNNING state: canAutoStart=%d (should be false)\n", canAutoStartRunning);
+    TEST_ASSERT_FALSE(canAutoStartRunning);
+    
+    // In STOPPED - should NOT start
+    ctx.timerState = TimerState::STOPPED;
+    bool canAutoStartStopped = (ctx.timerState == TimerState::IDLE && ctx.autoBrewWaitingForStart);
+    printf("    STOPPED state: canAutoStart=%d (should be false)\n", canAutoStartStopped);
+    TEST_ASSERT_FALSE(canAutoStartStopped);
+}
+
+// Test 5: Full GPIO3 cycle IDLE->RUNNING->STOPPED->IDLE
+void test_full_gpio3_cycle() {
+    printf("\nTest 5: Full GPIO3 cycle IDLE->RUNNING->STOPPED->IDLE\n");
+    
+    ctx.timerState = TimerState::IDLE;
+    ctx.timerRunning = false;
+    
+    // Press 1: IDLE -> RUNNING
+    bool consumed1 = simulateGPIO3ShortPress();
+    printf("  After press 1: state=%d, consumed=%d\n", (int)ctx.timerState, consumed1);
+    TEST_ASSERT_EQUAL(TimerState::RUNNING, ctx.timerState);
+    TEST_ASSERT_FALSE(consumed1);
+    
+    // Press 2: RUNNING -> STOPPED
+    bool consumed2 = simulateGPIO3ShortPress();
+    printf("  After press 2: state=%d, consumed=%d\n", (int)ctx.timerState, consumed2);
+    TEST_ASSERT_EQUAL(TimerState::STOPPED, ctx.timerState);
+    TEST_ASSERT_FALSE(consumed2);
+    
+    // Press 3: STOPPED -> IDLE (returns true!)
+    bool consumed3 = simulateGPIO3ShortPress();
+    printf("  After press 3: state=%d, consumed=%d\n", (int)ctx.timerState, consumed3);
+    TEST_ASSERT_EQUAL(TimerState::IDLE, ctx.timerState);
+    TEST_ASSERT_TRUE(consumed3);
+    
+    // Verify auto-brew waiting is reset
+    TEST_ASSERT_TRUE(ctx.autoBrewWaitingForStart);
+}
+
+// Test 6: After STOPPED->IDLE, consumed=true means no further action needed
+void test_stopped_to_idle_is_terminal_for_gpio3() {
+    printf("\nTest 6: STOPPED->IDLE is terminal - no further GPIO3 action until next brew\n");
+    
+    ctx.timerState = TimerState::STOPPED;
+    
+    // First press: STOPPED -> IDLE (consumed=true)
+    bool consumed1 = simulateGPIO3ShortPress();
+    TEST_ASSERT_TRUE(consumed1);
+    TEST_ASSERT_EQUAL(TimerState::IDLE, ctx.timerState);
+    
+    // Timer is now IDLE - next press would start it
+    // This is the expected behavior: after reset, must press again to start
+}
+
+// Test 7: Manual start in IDLE works
+void test_manual_start_in_idle() {
+    printf("\nTest 7: Manual start in IDLE works\n");
+    ctx.timerState = TimerState::IDLE;
+    ctx.timerRunning = false;
+    
+    ctx.startTimer();
+    ctx.timerState = TimerState::RUNNING;
+    
+    TEST_ASSERT_EQUAL(TimerState::RUNNING, ctx.timerState);
+    TEST_ASSERT_TRUE(ctx.timerRunning);
+}
+
+// Test 8: Auto-brew start sets state to RUNNING
+void test_auto_brew_start_sets_running() {
+    printf("\nTest 8: Auto-brew start should set state to RUNNING\n");
+    ctx.timerState = TimerState::IDLE;
+    ctx.autoBrewWaitingForStart = true;
+    
+    // Simulate auto-brew start
+    ctx.startTimer();
+    ctx.timerState = TimerState::RUNNING;
+    ctx.autoBrewWaitingForStart = false;
+    ctx.autoBrewWaitingForStop = true;
+    
+    TEST_ASSERT_EQUAL(TimerState::RUNNING, ctx.timerState);
+    TEST_ASSERT_TRUE(ctx.timerRunning);
+    TEST_ASSERT_FALSE(ctx.autoBrewWaitingForStart);
+    TEST_ASSERT_TRUE(ctx.autoBrewWaitingForStop);
+}
+
+#ifndef ARDUINO
+int main() {
+    printf("========================================\n");
+    printf("Timer State Machine Unit Tests\n");
+    printf("========================================\n");
+    
+    // Initialize context
+    ctx.timerStartTime = 0;
+    ctx.timerPausedTime = 0;
+    ctx.timerRunning = false;
+    ctx.timerPaused = false;
+    ctx.timerState = TimerState::IDLE;
+    ctx.autoBrewTimerEnabled = true;
+    ctx.autoBrewWaitingForStart = true;
+    ctx.autoBrewWaitingForStop = false;
+    
+    // Run tests
+    test_gpio3_idle_starts_timer();
+    test_gpio3_running_stops_timer();
+    test_gpio3_stopped_resets_and_returns_true();
+    test_auto_brew_only_starts_in_idle();
+    test_full_gpio3_cycle();
+    test_stopped_to_idle_is_terminal_for_gpio3();
+    test_manual_start_in_idle();
+    test_auto_brew_start_sets_running();
+    
+    // Summary
+    printf("\n========================================\n");
+    printf("Test Results: %d run, %d passed, %d failed\n", tests_run, tests_passed, tests_failed);
+    printf("========================================\n");
+    
+    if (tests_failed > 0) {
+        printf("SOME TESTS FAILED!\n");
+        return 1;
+    } else {
+        printf("ALL TESTS PASSED!\n");
+        return 0;
+    }
+}
+#endif

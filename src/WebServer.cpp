@@ -213,6 +213,38 @@ void setupWebServer(Scale &scale, FlowRate &flowRate, BluetoothScale &bluetoothS
     request->send(200, "text/plain", "Timer reset");
   });
 
+  // Auto Brew Timer endpoint
+  server.on("/api/auto-brew-timer", HTTP_GET, [&display](AsyncWebServerRequest *request) {
+    String json = "{";
+    json += "\"enabled\":" + String(display.isAutoBrewTimerEnabled() ? "true" : "false") + ",";
+    json += "\"start_threshold\":" + String(display.getAutoBrewStartThreshold(), 2);
+    json += "}";
+    request->send(200, "application/json", json);
+  });
+
+  server.on("/api/auto-brew-timer", HTTP_POST, [&display](AsyncWebServerRequest *request) {
+    bool updated = false;
+    
+    if (request->hasParam("enabled", true)) {
+      String value = request->getParam("enabled", true)->value();
+      display.setAutoBrewTimerEnabled(value == "true" || value == "1");
+      updated = true;
+    }
+    if (request->hasParam("start_threshold", true)) {
+      float threshold = request->getParam("start_threshold", true)->value().toFloat();
+      if (threshold < 0.1f) threshold = 0.1f;
+      if (threshold > 5.0f) threshold = 5.0f;
+      display.setAutoBrewStartThreshold(threshold);
+      updated = true;
+    }
+    
+    if (updated) {
+      request->send(200, "text/plain", "Auto Brew Timer updated");
+    } else {
+      request->send(400, "text/plain", "Missing parameter");
+    }
+  });
+
   server.on("/api/weight", HTTP_GET, [&scale](AsyncWebServerRequest *request) {
     request->send(200, "text/plain", String(scale.getCurrentWeight()));
   });

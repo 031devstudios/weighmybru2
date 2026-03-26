@@ -118,13 +118,8 @@ setup_version() {
 }
 
 setup_build_flags() {
-    export PLATFORMIO_BUILD_FLAGS="\
-        -DWEIGHMYBRU_BUILD_NUMBER=$BUILD_NUMBER \
-        -DWEIGHMYBRU_COMMIT_HASH=\\\"$COMMIT_HASH\\\" \
-        -DWEIGHMYBRU_BUILD_DATE=\\\"$BUILD_DATE\\\" \
-        -DWEIGHMYBRU_BUILD_TIME=\\\"$BUILD_TIME\\\""
-    
-    print_step "Build flags: $PLATFORMIO_BUILD_FLAGS"
+    print_step "Using build flags from platformio.ini"
+    print_step "Build number: $BUILD_NUMBER, Commit: $COMMIT_HASH"
 }
 
 clean_build() {

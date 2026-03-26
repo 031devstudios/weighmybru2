@@ -193,3 +193,41 @@ void FlowRate::clearFlowRateBuffer() {
     Serial.println("Flow rate buffer cleared for fresh start");
 }
 
+void FlowRate::addFlowSample(float flowRateValue) {
+    flowSamples[flowSampleIndex] = flowRateValue;
+    flowSampleTimestamps[flowSampleIndex] = millis();
+    flowSampleIndex = (flowSampleIndex + 1) % FLOWRATE_SAMPLE_WINDOW;
+    if (flowSampleCount < FLOWRATE_SAMPLE_WINDOW) {
+        flowSampleCount++;
+    }
+}
+
+void FlowRate::clearFlowSamples() {
+    for (int i = 0; i < FLOWRATE_SAMPLE_WINDOW; i++) {
+        flowSamples[i] = 0.0f;
+        flowSampleTimestamps[i] = 0;
+    }
+    flowSampleIndex = 0;
+    flowSampleCount = 0;
+}
+
+int FlowRate::getFlowSampleCount() const {
+    return flowSampleCount;
+}
+
+void FlowRate::getFlowSamples(float samples[], int maxSamples) const {
+    int count = min(flowSampleCount, maxSamples);
+    for (int i = 0; i < count; i++) {
+        int index = (flowSampleIndex - count + i + FLOWRATE_SAMPLE_WINDOW) % FLOWRATE_SAMPLE_WINDOW;
+        samples[i] = flowSamples[index];
+    }
+}
+
+void FlowRate::getFlowSampleTimestamps(unsigned long timestamps[], int maxSamples) const {
+    int count = min(flowSampleCount, maxSamples);
+    for (int i = 0; i < count; i++) {
+        int index = (flowSampleIndex - count + i + FLOWRATE_SAMPLE_WINDOW) % FLOWRATE_SAMPLE_WINDOW;
+        timestamps[i] = flowSampleTimestamps[index];
+    }
+}
+

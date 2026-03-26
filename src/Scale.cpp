@@ -2,6 +2,7 @@
 #include "WebServer.h"
 #include "Calibration.h"
 #include "FlowRate.h"
+#include "Display.h"
 
 Scale::Scale(uint8_t dataPin, uint8_t clockPin, float calibrationFactor)
     : dataPin(dataPin), clockPin(clockPin), calibrationFactor(calibrationFactor), currentWeight(0.0f),
@@ -191,6 +192,7 @@ float Scale::getWeight() {
     // Smart filtering based on brewing activity detection
     float weightChange = abs(rawReading - currentWeight);
     bool brewingDetected = false;
+    FilterState oldFilterState = currentFilterState;
     
     // Detect brewing activity using configurable threshold
     if (currentFilterState == STABLE) {
@@ -361,6 +363,10 @@ void Scale::loadFilterSettings() {
 
 void Scale::setFlowRatePtr(FlowRate* flowRatePtr) {
     this->flowRatePtr = flowRatePtr;
+}
+
+void Scale::setDisplayPtr(Display* displayPtr) {
+    this->displayPtr = displayPtr;
 }
 
 String Scale::getFilterState() const {

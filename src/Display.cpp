@@ -5,14 +5,25 @@
 #include "PowerManager.h"
 #include "BatteryMonitor.h"
 #include <WiFi.h>
+#include <Preferences.h>
 #include "WiFiManager.h"
 
 Display::Display(uint8_t sdaPin, uint8_t sclPin, Scale* scale, FlowRate* flowRate)
     : sdaPin(sdaPin), sclPin(sclPin), scalePtr(scale), flowRatePtr(flowRate), bluetoothPtr(nullptr), powerManagerPtr(nullptr), batteryPtr(nullptr), wifiManagerPtr(nullptr),
       messageStartTime(0), messageDuration(2000), showingMessage(false), 
       timerStartTime(0), timerPausedTime(0), timerRunning(false), timerPaused(false),
-      lastFlowRate(0.0), showingStatusPage(false), statusPageStartTime(0) {
+      lastFlowRate(0.0), timerState(TimerState::IDLE), showingStatusPage(false), statusPageStartTime(0),
+      autoBrewTimerEnabled(true), autoBrewTimerActive(false), 
+      autoBrewStartThreshold(0.7f), autoBrewSlopeThreshold(0.5f),
+      autoBrewWaitingForStart(true), autoBrewWaitingForStop(false),
+      autoBrewFlowSampleIndex(0), autoBrewFlowSampleCount(0),
+      lastTareButtonPressTime(0), lastSleepButtonPressTime(0) {
     display = new Adafruit_SSD1306(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+    // Initialize flow samples array
+    for (int i = 0; i < 6; i++) {
+        autoBrewFlowSamples[i] = 0.0f;
+        autoBrewFlowTimestamps[i] = 0;
+    }
 }
 
 bool Display::begin() {
@@ -62,6 +73,20 @@ bool Display::begin() {
     
     Serial.println("Display connected and initialized successfully");
     displayConnected = true;
+    
+    // Load Auto Brew Timer preferences from NVS
+    Preferences prefs;
+    if (prefs.begin("autobrew", true)) {
+        autoBrewTimerEnabled = prefs.getBool("enabled", true);
+        autoBrewStartThreshold = prefs.getFloat("start_thresh", 0.7f);
+        autoBrewSlopeThreshold = prefs.getFloat("slope_thresh", 0.5f);
+        prefs.end();
+        Serial.printf("Auto Brew Timer: enabled=%d, start_thresh=%.2f, slope_thresh=%.2f\n", 
+                      autoBrewTimerEnabled, autoBrewStartThreshold, autoBrewSlopeThreshold);
+    } else {
+        Serial.println("Auto Brew Timer: using defaults (enabled, thresh=0.7)");
+    }
+    
     setupDisplay();
     
     // Show startup message in same format as welcome message
@@ -1021,6 +1046,280 @@ void Display::resetTimer() {
 
 bool Display::isTimerRunning() const {
     return timerRunning && !timerPaused;
+}
+
+void Display::setAutoBrewTimerEnabled(bool enabled) {
+    autoBrewTimerEnabled = enabled;
+    if (!enabled) {
+        autoBrewTimerActive = false;
+        autoBrewWaitingForStart = true;
+        autoBrewWaitingForStop = false;
+        clearAutoBrewFlowSamples();
+    }
+    
+    Preferences prefs;
+    if (prefs.begin("autobrew", false)) {
+        prefs.putBool("enabled", enabled);
+        prefs.end();
+    }
+}
+
+bool Display::isAutoBrewTimerEnabled() const {
+    return autoBrewTimerEnabled;
+}
+
+void Display::setAutoBrewStartThreshold(float threshold) {
+    if (threshold < 0.1f) threshold = 0.1f;
+    if (threshold > 5.0f) threshold = 5.0f;
+    autoBrewStartThreshold = threshold;
+    
+    Preferences prefs;
+    if (prefs.begin("autobrew", false)) {
+        prefs.putFloat("start_thresh", threshold);
+        prefs.end();
+    }
+}
+
+float Display::getAutoBrewStartThreshold() const {
+    return autoBrewStartThreshold;
+}
+
+void Display::setAutoBrewSlopeThreshold(float threshold) {
+    if (threshold < 0.1f) threshold = 0.1f;
+    if (threshold > 5.0f) threshold = 5.0f;
+    autoBrewSlopeThreshold = threshold;
+    
+    Preferences prefs;
+    if (prefs.begin("autobrew", false)) {
+        prefs.putFloat("slope_thresh", threshold);
+        prefs.end();
+    }
+}
+
+float Display::getAutoBrewSlopeThreshold() const {
+    return autoBrewSlopeThreshold;
+}
+
+void Display::clearAutoBrewFlowSamples() {
+    for (int i = 0; i < 6; i++) {
+        autoBrewFlowSamples[i] = 0.0f;
+        autoBrewFlowTimestamps[i] = 0;
+    }
+    autoBrewFlowSampleIndex = 0;
+    autoBrewFlowSampleCount = 0;
+}
+
+void Display::addAutoBrewFlowSample(float flowRate) {
+    autoBrewFlowSamples[autoBrewFlowSampleIndex] = flowRate;
+    autoBrewFlowTimestamps[autoBrewFlowSampleIndex] = millis();
+    autoBrewFlowSampleIndex = (autoBrewFlowSampleIndex + 1) % 6;
+    if (autoBrewFlowSampleCount < 6) {
+        autoBrewFlowSampleCount++;
+    }
+}
+
+float Display::calculateAutoBrewFlowSlope() {
+    if (autoBrewFlowSampleCount < 2) {
+        return 0.0f;
+    }
+    
+    // Get the oldest and newest samples
+    int oldestIndex = (autoBrewFlowSampleIndex - autoBrewFlowSampleCount + 6) % 6;
+    int newestIndex = (autoBrewFlowSampleIndex - 1 + 6) % 6;
+    
+    float oldestFlow = autoBrewFlowSamples[oldestIndex];
+    float newestFlow = autoBrewFlowSamples[newestIndex];
+    unsigned long oldestTime = autoBrewFlowTimestamps[oldestIndex];
+    unsigned long newestTime = autoBrewFlowTimestamps[newestIndex];
+    
+    float timeSpan = (newestTime - oldestTime) / 1000.0f; // Convert to seconds
+    if (timeSpan <= 0) {
+        return 0.0f;
+    }
+    
+    float slope = (newestFlow - oldestFlow) / timeSpan;
+    return slope;
+}
+
+void Display::updateAutoBrewFlowDetection(float flowRate) {
+    if (!autoBrewTimerEnabled) {
+        return;
+    }
+    
+    addAutoBrewFlowSample(flowRate);
+    
+    if (timerState == TimerState::RUNNING && autoBrewWaitingForStop) {
+        // Timer is running via auto-brew - check for stop condition
+        // Need 6 samples showing negative slope (decreasing flow)
+        if (autoBrewFlowSampleCount >= 6) {
+            float slope = calculateAutoBrewFlowSlope();
+            if (slope < -autoBrewSlopeThreshold) {
+                // Flow is decreasing significantly - brew ended
+                unsigned long now = millis();
+                
+                // Back-calculate when flow actually stopped
+                unsigned long actualStopTime = now - (5 * 150); // 5 intervals of 150ms
+                timerPausedTime = actualStopTime - timerStartTime;
+                timerPaused = true;
+                
+                Serial.printf("[AutoBrew] AUTO-STOP! slope=%.2f, elapsed=%lums, state=STOPPED\n", 
+                              slope, timerPausedTime);
+                
+                if (flowRatePtr != nullptr) {
+                    flowRatePtr->stopTimerAveraging();
+                }
+                
+                // Transition to STOPPED state - user must press GPIO3 to reset
+                timerState = TimerState::STOPPED;
+                autoBrewTimerActive = false;
+                autoBrewWaitingForStop = false;
+                clearAutoBrewFlowSamples();
+                // Do NOT set autoBrewWaitingForStart = true here!
+            }
+        }
+    } else if (timerState == TimerState::IDLE && autoBrewWaitingForStart) {
+        // IDLE state and waiting for flow - check if we have 6 samples above threshold
+        if (autoBrewFlowSampleCount >= 6) {
+            // Check if all 6 samples are above threshold
+            bool allAboveThreshold = true;
+            int oldestIndex = (autoBrewFlowSampleIndex - autoBrewFlowSampleCount + 6) % 6;
+            for (int i = 0; i < 6; i++) {
+                int idx = (oldestIndex + i) % 6;
+                if (autoBrewFlowSamples[idx] < autoBrewStartThreshold) {
+                    allAboveThreshold = false;
+                    break;
+                }
+            }
+            
+            if (allAboveThreshold) {
+                // Check slope to confirm stable flow
+                float slope = calculateAutoBrewFlowSlope();
+                if (abs(slope) < autoBrewSlopeThreshold) {
+                    // Stable flow detected - start timer with back-calculation
+                    unsigned long now = millis();
+                    unsigned long oldestTime = autoBrewFlowTimestamps[(autoBrewFlowSampleIndex - autoBrewFlowSampleCount + 6) % 6];
+                    unsigned long firstSampleTime = oldestTime;
+                    
+                    // Back-calculate: timer should have started at first sample time
+                    timerStartTime = now - (5 * 150); // First sample was ~750ms ago
+                    timerRunning = true;
+                    timerPaused = false;
+                    autoBrewTimerActive = true;
+                    autoBrewWaitingForStart = false;
+                    autoBrewWaitingForStop = true;
+                    timerState = TimerState::RUNNING;
+                    
+                    Serial.printf("[AutoBrew] AUTO-START! slope=%.2f, firstSample=%lums ago, state=RUNNING\n", 
+                                  slope, now - firstSampleTime);
+                    
+                    if (flowRatePtr != nullptr) {
+                        flowRatePtr->startTimerAveraging();
+                    }
+                    
+                    clearAutoBrewFlowSamples();
+                } else {
+                    // Slope too steep - likely noise, reset samples
+                    Serial.printf("[AutoBrew] Slope too steep (%.2f), resetting samples\n", slope);
+                    clearAutoBrewFlowSamples();
+                }
+            }
+        }
+    }
+}
+
+void Display::resetAutoBrewDetection() {
+    clearAutoBrewFlowSamples();
+    autoBrewWaitingForStart = true;
+    autoBrewWaitingForStop = false;
+    Serial.println("[AutoBrew] Detection reset after tare");
+}
+
+void Display::showAutoBrewStatusMessage(bool isEnabled) {
+    if (!displayConnected) {
+        return;
+    }
+    
+    currentMessage = isEnabled ? "Auto Brew On" : "Auto Brew Off";
+    messageStartTime = millis();
+    showingMessage = true;
+    
+    display->clearDisplay();
+    display->setTextSize(2);
+    display->setTextColor(SSD1306_WHITE);
+    
+    String line1 = "Auto Brew";
+    String line2 = isEnabled ? "Enabled" : "Disabled";
+    
+    int16_t x1, y1;
+    uint16_t w1, h1, w2, h2;
+    
+    display->getTextBounds(line1, 0, 0, &x1, &y1, &w1, &h1);
+    display->getTextBounds(line2, 0, 0, &x1, &y1, &w2, &h2);
+    
+    int centerX1 = (SCREEN_WIDTH - w1) / 2;
+    int centerX2 = (SCREEN_WIDTH - w2) / 2;
+    
+    display->setCursor(centerX1, 0);
+    display->print(line1);
+    display->setCursor(centerX2, 16);
+    display->print(line2);
+    
+    display->display();
+}
+
+bool Display::onTareButtonShortPress() {
+    unsigned long currentTime = millis();
+    
+    if (currentTime - lastSleepButtonPressTime <= DUAL_BUTTON_WINDOW) {
+        autoBrewTimerEnabled = !autoBrewTimerEnabled;
+        showAutoBrewStatusMessage(autoBrewTimerEnabled);
+        Serial.printf("Dual button press - Auto Brew Timer toggled: %s\n", 
+                      autoBrewTimerEnabled ? "ON" : "OFF");
+        lastTareButtonPressTime = currentTime;
+        return false; // Don't proceed with tare
+    }
+    
+    lastTareButtonPressTime = currentTime;
+    return true; // Proceed with tare
+}
+
+bool Display::onSleepButtonShortPress() {
+    unsigned long currentTime = millis();
+    
+    if (currentTime - lastTareButtonPressTime <= DUAL_BUTTON_WINDOW) {
+        autoBrewTimerEnabled = !autoBrewTimerEnabled;
+        showAutoBrewStatusMessage(autoBrewTimerEnabled);
+        Serial.printf("Dual button press - Auto Brew Timer toggled: %s\n", 
+                      autoBrewTimerEnabled ? "ON" : "OFF");
+        lastSleepButtonPressTime = currentTime;
+        return false; // Timer control not handled by dual button
+    }
+    
+    // State machine for GPIO3 short press
+    switch(timerState) {
+        case TimerState::IDLE:
+            startTimer();
+            timerState = TimerState::RUNNING;
+            Serial.println("[Timer] GPIO3: IDLE -> starting timer, state=RUNNING");
+            lastSleepButtonPressTime = currentTime;
+            return false; // Timer control not fully handled, call handleTimerControl
+        case TimerState::RUNNING:
+            stopTimer();
+            timerState = TimerState::STOPPED;
+            Serial.println("[Timer] GPIO3: RUNNING -> stopping timer, state=STOPPED");
+            lastSleepButtonPressTime = currentTime;
+            return false; // Timer control not fully handled, call handleTimerControl
+        case TimerState::STOPPED:
+            resetTimer();
+            resetAutoBrewDetection();
+            timerState = TimerState::IDLE;
+            Serial.println("[Timer] GPIO3: STOPPED -> resetting timer, state=IDLE");
+            lastSleepButtonPressTime = currentTime;
+            return true; // Timer control fully handled, don't call handleTimerControl
+    }
+    
+    lastSleepButtonPressTime = currentTime;
+    return false;
 }
 
 float Display::getTimerSeconds() const {

@@ -195,6 +195,19 @@
       <p class="text-sm text-blue-400" id="avgFlowRate" style="display: none;"></p>
     </div>
 
+    <!-- Auto Brew Timer Toggle -->
+    <div class="flex items-center justify-center gap-2 mt-2">
+      <span class="text-sm text-gray-300">Auto Brew</span>
+      <label class="relative inline-flex items-center cursor-pointer">
+        <input type="checkbox" id="autoBrewTimer" class="sr-only peer" checked>
+        <div class="w-11 h-6 bg-green-600 rounded-full peer peer-focus:outline-none 
+                    peer-focus:ring-2 peer-focus:ring-green-800 transition-colors 
+                    after:content-[''] after:absolute after:top-0.5 after:left-[2px] 
+                    after:bg-white after:rounded-full after:h-5 after:w-5 
+                    after:transition-all peer-checked:after:translate-x-5"></div>
+      </label>
+    </div>
+
     <!-- Action Buttons -->
     <div class="grid grid-cols-2 gap-2 mt-2">
       <button onclick="tareScale()" class="bg-gray-700 hover:bg-gray-600 py-2 rounded-lg text-sm font-semibold">
@@ -579,6 +592,31 @@
       .catch(err => console.error("Timer reset failed:", err));
   }
 
+  // Auto Brew Timer
+  function initAutoBrewTimer() {
+    fetch('/api/auto-brew-timer')
+      .then(response => response.json())
+      .then(data => {
+        document.getElementById('autoBrewTimer').checked = data.enabled;
+      })
+      .catch(err => console.error("Auto Brew Timer init failed:", err));
+  }
+
+  function toggleAutoBrewTimer(enabled) {
+    fetch('/api/auto-brew-timer', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: 'enabled=' + enabled
+    })
+      .then(response => response.text())
+      .then(data => console.log("Auto Brew Timer:", data))
+      .catch(err => console.error("Auto Brew Timer toggle failed:", err));
+  }
+
+  document.getElementById('autoBrewTimer').addEventListener('change', function(e) {
+    toggleAutoBrewTimer(e.target.checked);
+  });
+
   function updateWeight() {
     // Use combined endpoint for better performance
     fetch('/api/dashboard')
@@ -748,6 +786,7 @@
   // Run smart detection every 200ms to adjust update frequency for brewing activity
   setInterval(smartUpdate, 200); // Re-enabled for intelligent brewing detection
   updateWeight();
+  initAutoBrewTimer();
 
   // Signal strength update function
   function updateSignalStrength(data) {

@@ -33,6 +33,7 @@ private:
     bool longPressDetected;
     bool cancelledRecently;
     unsigned long cancelTime;
+    bool gpio3HandlingInProgress;  // Prevents re-entry during GPIO3 handling
     
     // Timer control state
     enum class TimerState {
