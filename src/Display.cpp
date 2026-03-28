@@ -1037,6 +1037,7 @@ void Display::resetTimer() {
     timerPausedTime = 0;
     timerRunning = false;
     timerPaused = false;
+    timerState = TimerState::IDLE;
     
     // Reset flow rate averaging when timer is reset
     if (flowRatePtr != nullptr) {

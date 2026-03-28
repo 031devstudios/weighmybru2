@@ -363,8 +363,12 @@ void setupWebServer(Scale &scale, FlowRate &flowRate, BluetoothScale &bluetoothS
   server.on("/api/tare", HTTP_POST, [&scale, &display, &flowRate](AsyncWebServerRequest *request){
     scale.tare(20);
     
-    // Reset timer when taring (prepare for fresh brew)
-    display.resetTimer();
+    // Handle timer based on current state (matches physical tare behavior)
+    if (display.getTimerState() == Display::TimerState::STOPPED) {
+      display.resetTimer();
+    } else if (display.getTimerState() == Display::TimerState::RUNNING) {
+      display.resetAutoBrewDetection();
+    }
     
     // Reset flow rate averaging for fresh brew measurement
     flowRate.resetTimerAveraging();
