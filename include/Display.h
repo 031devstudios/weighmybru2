@@ -54,6 +54,10 @@ public:
     float getTimerSeconds() const;
     unsigned long getElapsedTime() const; // Get current elapsed time in milliseconds
     
+    // Timer duration for progress bar (in milliseconds)
+    int getTimerDuration() const { return timerDuration; }
+    void setTimerDuration(int duration);
+    
 private:
     uint8_t sdaPin;
     uint8_t sclPin;
@@ -81,6 +85,7 @@ private:
     unsigned long timerPausedTime;
     bool timerRunning;
     bool timerPaused;
+    int timerDuration; // Duration in ms for progress bar (default 30000)
     float lastFlowRate; // Store last flow rate for comparison
     
     // Status page system
