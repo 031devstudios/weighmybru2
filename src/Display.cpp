@@ -983,7 +983,7 @@ void Display::showWeightWithFlowAndTimer(float weight) {
         display->fillRect(0, 31, barWidth, 1, SSD1306_WHITE);
         
         // Animated stripe pattern: 1px black every 10px, scrolling at 2px/sec
-        uint8_t offset = (elapsed * 2 / 1000) % 10;
+        uint8_t offset = (elapsed * 6 / 1000) % 10;
         for (uint8_t x = offset; x < barWidth; x += 10) {
             display->drawPixel(x, 31, SSD1306_BLACK);
         }
