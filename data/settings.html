@@ -72,6 +72,17 @@
       </form>
       <div id="displayMessage" class="text-green-400 mb-2"></div>
       
+      <h2 class="text-2xl font-semibold mb-4 mt-8">Timer Settings</h2>
+      <form id="timerForm" class="mb-6">
+        <label for="timerDuration" class="block mb-2">Progress Bar Duration:</label>
+        <input type="number" id="timerDuration" name="timerDuration" step="1000" min="1000" max="300000" class="w-32 px-3 py-2 mb-2 rounded text-black" />
+        <span class="text-gray-400 ml-2">milliseconds (default: 30000)</span>
+        <p class="text-gray-400 text-sm mb-4">Time in ms for the LCD progress bar to reach 100% (1000-300000ms)</p>
+        <button type="submit" class="bg-gray-600 hover:bg-button-green active:bg-green-900 text-white px-4 py-2 rounded">Save Timer Settings</button>
+      </form>
+      <div id="timerMessage" class="text-green-400 mb-2"></div>
+      <p id="timerStatus" class="text-red-400"></p>
+      
       <h2 class="text-2xl font-semibold mb-4 mt-8">Filtering Settings</h2>
       <form id="filterForm" class="mb-6">
         <label for="brewingThreshold" class="block mb-2">Brewing Detection Threshold:</label>
@@ -103,28 +114,23 @@
   </main>
 </div>
 <script>
-    // Load all settings in a single API call for faster loading
     Promise.all([
       fetch('/api/settings').then(r => r.json()),
-      fetch('/api/filter-settings').then(r => r.json())
-    ]).then(([settingsData, filterData]) => {
-      // Set WiFi credentials
+      fetch('/api/filter-settings').then(r => r.json()),
+      fetch('/api/timer-settings').then(r => r.json())
+    ]).then(([settingsData, filterData, timerData]) => {
       document.getElementById('ssid').value = settingsData.ssid || '';
       document.getElementById('password').value = settingsData.password || '';
-      
-      // Set decimal setting
       if (settingsData.decimals !== undefined) {
         document.getElementById('decimals').value = settingsData.decimals;
       }
-      
-      // Set filter settings
       document.getElementById('brewingThreshold').value = filterData.brewingThreshold || 0.15;
       document.getElementById('stabilityTimeout').value = filterData.stabilityTimeout || 2000;
       document.getElementById('medianSamples').value = filterData.medianSamples || 3;
       document.getElementById('averageSamples').value = filterData.averageSamples || 5;
+      document.getElementById('timerDuration').value = timerData.duration || 30000;
     }).catch(err => {
       console.error('Error loading settings:', err);
-      // Fallback to individual API calls if combined endpoint fails
       loadSettingsIndividually();
     });
 
@@ -134,8 +140,9 @@
       Promise.all([
         fetch('/api/wifi-creds').then(r => r.json()),
         fetch('/api/decimal-setting').then(r => r.json()),
-        fetch('/api/filter-settings').then(r => r.json())
-      ]).then(([wifiData, decimalData, filterData]) => {
+        fetch('/api/filter-settings').then(r => r.json()),
+        fetch('/api/timer-settings').then(r => r.json())
+      ]).then(([wifiData, decimalData, filterData, timerData]) => {
         document.getElementById('ssid').value = wifiData.ssid || '';
         document.getElementById('password').value = wifiData.password || '';
         if (decimalData.decimals !== undefined) {
@@ -145,6 +152,7 @@
         document.getElementById('stabilityTimeout').value = filterData.stabilityTimeout || 2000;
         document.getElementById('medianSamples').value = filterData.medianSamples || 3;
         document.getElementById('averageSamples').value = filterData.averageSamples || 5;
+        document.getElementById('timerDuration').value = timerData.duration || 30000;
       }).catch(err => console.error('Error loading individual settings:', err));
     }
 
@@ -247,6 +255,31 @@
       });
       const result = await response.text();
       document.getElementById('displayMessage').textContent = result;
+    });
+
+    document.getElementById('timerForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const duration = document.getElementById('timerDuration').value;
+      const params = new URLSearchParams();
+      params.append('duration', duration);
+      try {
+        const response = await fetch('/api/timer-settings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: params.toString()
+        });
+        const result = await response.json();
+        if (result.status === 'success') {
+          document.getElementById('timerMessage').textContent = result.message;
+          document.getElementById('timerStatus').textContent = '';
+        } else {
+          document.getElementById('timerStatus').textContent = result.message;
+          document.getElementById('timerMessage').textContent = '';
+        }
+      } catch (err) {
+        document.getElementById('timerStatus').textContent = 'Error saving timer settings';
+        console.error('Timer settings error:', err);
+      }
     });
 
     // Handle filter settings

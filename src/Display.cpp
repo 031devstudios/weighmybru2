@@ -6,11 +6,12 @@
 #include "BatteryMonitor.h"
 #include <WiFi.h>
 #include "WiFiManager.h"
+#include <Preferences.h>
 
 Display::Display(uint8_t sdaPin, uint8_t sclPin, Scale* scale, FlowRate* flowRate)
     : sdaPin(sdaPin), sclPin(sclPin), scalePtr(scale), flowRatePtr(flowRate), bluetoothPtr(nullptr), powerManagerPtr(nullptr), batteryPtr(nullptr), wifiManagerPtr(nullptr),
       messageStartTime(0), messageDuration(2000), showingMessage(false), 
-      timerStartTime(0), timerPausedTime(0), timerRunning(false), timerPaused(false),
+      timerStartTime(0), timerPausedTime(0), timerRunning(false), timerPaused(false), timerWasStarted(false), timerDuration(30000),
       lastFlowRate(0.0), showingStatusPage(false), statusPageStartTime(0) {
     display = new Adafruit_SSD1306(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 }
@@ -63,6 +64,12 @@ bool Display::begin() {
     Serial.println("Display connected and initialized successfully");
     displayConnected = true;
     setupDisplay();
+    
+    Preferences prefs;
+    prefs.begin("display", true);
+    timerDuration = prefs.getInt("timer_duration", 30000);
+    prefs.end();
+    Serial.printf("Timer duration loaded: %d ms\n", timerDuration);
     
     // Show startup message in same format as welcome message
     display->clearDisplay();
@@ -967,6 +974,21 @@ void Display::showWeightWithFlowAndTimer(float weight) {
     display->setCursor(flowLabelX, 16); // Far right position, below timer
     display->print("F");
     
+    if (timerWasStarted) {
+        unsigned long elapsed = getElapsedTime();
+        float progress = min(1.0f, (float)elapsed / (float)timerDuration);
+        uint8_t barWidth = (uint8_t)(SCREEN_WIDTH * progress);
+        
+        // Draw solid white progress bar
+        display->fillRect(0, 31, barWidth, 1, SSD1306_WHITE);
+        
+        // Animated stripe pattern: 1px black every 10px, scrolling at 2px/sec
+        uint8_t offset = (elapsed * 10 / 1000) % 10;
+        for (uint8_t x = offset; x < barWidth; x += 10) {
+            display->drawPixel(x, 31, SSD1306_BLACK);
+        }
+    }
+    
     display->display();
 }
 
@@ -977,6 +999,7 @@ void Display::startTimer() {
         timerStartTime = millis();
         timerRunning = true;
         timerPaused = false;
+        timerWasStarted = true;
         
         // Start flow rate averaging when timer starts
         if (flowRatePtr != nullptr) {
@@ -986,6 +1009,7 @@ void Display::startTimer() {
         // Resume from paused state
         timerStartTime = millis() - timerPausedTime;
         timerPaused = false;
+        timerWasStarted = true;
         
         // Resume flow rate averaging when timer resumes
         if (flowRatePtr != nullptr) {
@@ -1012,11 +1036,20 @@ void Display::resetTimer() {
     timerPausedTime = 0;
     timerRunning = false;
     timerPaused = false;
+    timerWasStarted = false;
     
     // Reset flow rate averaging when timer is reset
     if (flowRatePtr != nullptr) {
         flowRatePtr->resetTimerAveraging();
     }
+}
+
+void Display::setTimerDuration(int duration) {
+    timerDuration = duration;
+    Preferences prefs;
+    prefs.begin("display", false);
+    prefs.putInt("timer_duration", duration);
+    prefs.end();
 }
 
 bool Display::isTimerRunning() const {
