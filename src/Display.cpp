@@ -11,7 +11,7 @@
 Display::Display(uint8_t sdaPin, uint8_t sclPin, Scale* scale, FlowRate* flowRate)
     : sdaPin(sdaPin), sclPin(sclPin), scalePtr(scale), flowRatePtr(flowRate), bluetoothPtr(nullptr), powerManagerPtr(nullptr), batteryPtr(nullptr), wifiManagerPtr(nullptr),
       messageStartTime(0), messageDuration(2000), showingMessage(false), 
-      timerStartTime(0), timerPausedTime(0), timerRunning(false), timerPaused(false), timerDuration(30000),
+      timerStartTime(0), timerPausedTime(0), timerRunning(false), timerPaused(false), timerWasStarted(false), timerDuration(30000),
       lastFlowRate(0.0), showingStatusPage(false), statusPageStartTime(0) {
     display = new Adafruit_SSD1306(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 }
@@ -974,7 +974,7 @@ void Display::showWeightWithFlowAndTimer(float weight) {
     display->setCursor(flowLabelX, 16); // Far right position, below timer
     display->print("F");
     
-    if (isTimerRunning()) {
+    if (timerWasStarted) {
         unsigned long elapsed = getElapsedTime();
         float progress = min(1.0f, (float)elapsed / (float)timerDuration);
         uint8_t barWidth = (uint8_t)(SCREEN_WIDTH * progress);
@@ -991,6 +991,7 @@ void Display::startTimer() {
         timerStartTime = millis();
         timerRunning = true;
         timerPaused = false;
+        timerWasStarted = true;
         
         // Start flow rate averaging when timer starts
         if (flowRatePtr != nullptr) {
@@ -1000,6 +1001,7 @@ void Display::startTimer() {
         // Resume from paused state
         timerStartTime = millis() - timerPausedTime;
         timerPaused = false;
+        timerWasStarted = true;
         
         // Resume flow rate averaging when timer resumes
         if (flowRatePtr != nullptr) {
@@ -1026,6 +1028,7 @@ void Display::resetTimer() {
     timerPausedTime = 0;
     timerRunning = false;
     timerPaused = false;
+    timerWasStarted = false;
     
     // Reset flow rate averaging when timer is reset
     if (flowRatePtr != nullptr) {

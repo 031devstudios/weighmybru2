@@ -85,6 +85,7 @@ private:
     unsigned long timerPausedTime;
     bool timerRunning;
     bool timerPaused;
+    bool timerWasStarted;
     int timerDuration; // Duration in ms for progress bar (default 30000)
     float lastFlowRate; // Store last flow rate for comparison
     
