@@ -91,7 +91,6 @@ bool Display::begin() {
     
     setupDisplay();
     
-    Preferences prefs;
     prefs.begin("display", true);
     timerDuration = prefs.getInt("timer_duration", 30000);
     prefs.end();
