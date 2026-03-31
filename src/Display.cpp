@@ -978,7 +978,16 @@ void Display::showWeightWithFlowAndTimer(float weight) {
         unsigned long elapsed = getElapsedTime();
         float progress = min(1.0f, (float)elapsed / (float)timerDuration);
         uint8_t barWidth = (uint8_t)(SCREEN_WIDTH * progress);
+        
+        // Draw solid white progress bar
         display->fillRect(0, 31, barWidth, 1, SSD1306_WHITE);
+        
+        // Animated stripe pattern: 1px black every 10px, scrolling at ~60fps
+        // Offset shifts 1px per frame (60px/sec)
+        uint8_t offset = (elapsed * 60 / 1000) % 10;
+        for (uint8_t x = offset; x < barWidth; x += 10) {
+            display->drawPixel(x, 31, SSD1306_BLACK);
+        }
     }
     
     display->display();
