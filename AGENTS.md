@@ -11,7 +11,6 @@
 ## IMPORTANT: ASK THE USER EVERY TIME FOR CONFIRMATION BEFORE COMMIT
 
 **NEVER** run `git commit` without explicit user confirmation. Always present the staged changes and proposed commit message, wait for user approval, then commit only after they explicitly say to proceed.
-
 ## Build Commands
 
 ```bash
@@ -116,6 +115,7 @@ The `Display` class owns the timer system:
 | POST | `/api/timer/start` | Start timer |
 | POST | `/api/timer/stop` | Stop timer |
 | POST | `/api/timer/reset` | Reset timer |
+<<<<<<< HEAD
 | POST | `/api/tare` | Tare scale; if STOPPED resets timer, if RUNNING resets auto-brew only |
 | GET | `/api/weight-fast` | Fast weight-only response |
 | GET | `/api/brew/weight` | GaggiMate-compatible weight |

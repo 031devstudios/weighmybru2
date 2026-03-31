@@ -624,6 +624,25 @@ void setupWebServer(Scale &scale, FlowRate &flowRate, BluetoothScale &bluetoothS
     }
   });
 
+  server.on("/api/timer-settings", HTTP_GET, [&display](AsyncWebServerRequest *request) {
+    String json = "{\"duration\":" + String(display.getTimerDuration()) + "}";
+    request->send(200, "application/json", json);
+  });
+
+  server.on("/api/timer-settings", HTTP_POST, [&display](AsyncWebServerRequest *request) {
+    if (request->hasParam("duration", true)) {
+      int duration = request->getParam("duration", true)->value().toInt();
+      if (duration >= 1000 && duration <= 300000) {
+        display.setTimerDuration(duration);
+        request->send(200, "application/json", "{\"status\":\"success\",\"message\":\"Timer duration updated\"}");
+      } else {
+        request->send(400, "application/json", "{\"status\":\"error\",\"message\":\"Duration must be between 1000 and 300000 ms\"}");
+      }
+    } else {
+      request->send(400, "application/json", "{\"status\":\"error\",\"message\":\"No duration parameter provided\"}");
+    }
+  });
+
   // Filter debug endpoint - shows current filter state
   server.on("/api/filter-debug", HTTP_GET, [&scale](AsyncWebServerRequest *request) {
     String json = "{";
