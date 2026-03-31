@@ -1,6 +1,7 @@
 #pragma once
 
 #define FLOWRATE_AVG_WINDOW 20  // Increased for better smoothing
+#define FLOWRATE_SAMPLE_WINDOW 10 // Samples for Auto Brew detection
 
 class FlowRate {
 public:
@@ -20,6 +21,13 @@ public:
     void resumeCalculation(); // Resume flow rate after tare completes
     void clearFlowRateBuffer(); // Clear all flow rate history for fresh start
     
+    // Auto Brew Timer support - sample buffer for slope calculation
+    void addFlowSample(float flowRate); // Add sample to circular buffer
+    void clearFlowSamples(); // Clear sample buffer (for tare)
+    int getFlowSampleCount() const; // Get number of samples in buffer
+    void getFlowSamples(float samples[], int maxSamples) const; // Get all samples
+    void getFlowSampleTimestamps(unsigned long timestamps[], int maxSamples) const; // Get timestamps
+
 private:
     float lastWeight;
     unsigned long lastTime;
@@ -35,6 +43,12 @@ private:
     float timerAverageFlowRate;
     bool hasValidTimerAverage;
     bool calculationPaused; // Flag to pause flow rate during tare operations
+    
+    // Auto Brew Timer sample buffer
+    float flowSamples[FLOWRATE_SAMPLE_WINDOW];
+    unsigned long flowSampleTimestamps[FLOWRATE_SAMPLE_WINDOW];
+    int flowSampleIndex;
+    int flowSampleCount;
     
     // Flow rate filtering parameters
     static constexpr float WEIGHT_DEADBAND = 0.08f;     // Increased deadband for load cell noise

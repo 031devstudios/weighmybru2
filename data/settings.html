@@ -72,6 +72,18 @@
       </form>
       <div id="displayMessage" class="text-green-400 mb-2"></div>
       
+      <h2 class="text-2xl font-semibold mb-4 mt-8">Auto Brew Timer</h2>
+      <form id="autoBrewForm" class="mb-6">
+        <label for="autoBrewThreshold" class="block mb-2">Flow Rate Threshold:</label>
+        <input type="number" id="autoBrewThreshold" name="start_threshold" step="0.1" min="0.1" max="5.0" class="w-24 px-3 py-2 mb-2 rounded text-black" />
+        <span class="text-gray-400 ml-2">g/s</span>
+        <p class="text-gray-400 text-sm mb-4">Flow rate to trigger auto-start (0.1-5.0 g/s, default: 0.7)</p>
+        
+        <button type="submit" class="bg-gray-600 hover:bg-button-green active:bg-green-900 text-white px-4 py-2 rounded">Save Auto Brew Settings</button>
+      </form>
+      <div id="autoBrewMessage" class="text-green-400 mb-2"></div>
+      <p id="autoBrewStatus" class="text-red-400"></p>
+      
       <h2 class="text-2xl font-semibold mb-4 mt-8">Timer Settings</h2>
       <form id="timerForm" class="mb-6">
         <label for="timerDuration" class="block mb-2">Progress Bar Duration:</label>
@@ -117,8 +129,10 @@
     Promise.all([
       fetch('/api/settings').then(r => r.json()),
       fetch('/api/filter-settings').then(r => r.json()),
+      fetch('/api/auto-brew-timer').then(r => r.json()),
       fetch('/api/timer-settings').then(r => r.json())
-    ]).then(([settingsData, filterData, timerData]) => {
+    ]).then(([settingsData, filterData, autoBrewData, timerData]) => {
+      // Set WiFi credentials
       document.getElementById('ssid').value = settingsData.ssid || '';
       document.getElementById('password').value = settingsData.password || '';
       if (settingsData.decimals !== undefined) {
@@ -128,6 +142,12 @@
       document.getElementById('stabilityTimeout').value = filterData.stabilityTimeout || 2000;
       document.getElementById('medianSamples').value = filterData.medianSamples || 3;
       document.getElementById('averageSamples').value = filterData.averageSamples || 5;
+      
+      // Set auto brew timer settings
+      if (autoBrewData.start_threshold !== undefined) {
+        document.getElementById('autoBrewThreshold').value = autoBrewData.start_threshold;
+      }
+      
       document.getElementById('timerDuration').value = timerData.duration || 30000;
     }).catch(err => {
       console.error('Error loading settings:', err);
@@ -141,8 +161,9 @@
         fetch('/api/wifi-creds').then(r => r.json()),
         fetch('/api/decimal-setting').then(r => r.json()),
         fetch('/api/filter-settings').then(r => r.json()),
+        fetch('/api/auto-brew-timer').then(r => r.json()),
         fetch('/api/timer-settings').then(r => r.json())
-      ]).then(([wifiData, decimalData, filterData, timerData]) => {
+      ]).then(([wifiData, decimalData, filterData, autoBrewData, timerData]) => {
         document.getElementById('ssid').value = wifiData.ssid || '';
         document.getElementById('password').value = wifiData.password || '';
         if (decimalData.decimals !== undefined) {
@@ -152,6 +173,9 @@
         document.getElementById('stabilityTimeout').value = filterData.stabilityTimeout || 2000;
         document.getElementById('medianSamples').value = filterData.medianSamples || 3;
         document.getElementById('averageSamples').value = filterData.averageSamples || 5;
+        if (autoBrewData.start_threshold !== undefined) {
+          document.getElementById('autoBrewThreshold').value = autoBrewData.start_threshold;
+        }
         document.getElementById('timerDuration').value = timerData.duration || 30000;
       }).catch(err => console.error('Error loading individual settings:', err));
     }
@@ -308,6 +332,27 @@
       } catch (err) {
         document.getElementById('filterStatus').textContent = 'Error saving filter settings';
         console.error('Filter settings error:', err);
+      }
+    });
+
+    // Handle Auto Brew Timer settings
+    document.getElementById('autoBrewForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const params = new URLSearchParams();
+      params.append('start_threshold', document.getElementById('autoBrewThreshold').value);
+      
+      try {
+        const response = await fetch('/api/auto-brew-timer', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: params.toString()
+        });
+        const result = await response.text();
+        document.getElementById('autoBrewMessage').textContent = result;
+        document.getElementById('autoBrewStatus').textContent = '';
+      } catch (err) {
+        document.getElementById('autoBrewStatus').textContent = 'Error saving Auto Brew settings';
+        console.error('Auto Brew settings error:', err);
       }
     });
 

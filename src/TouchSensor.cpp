@@ -4,10 +4,11 @@
 #include "FlowRate.h"
 #include "WiFiManager.h"
 
-TouchSensor::TouchSensor(uint8_t touchPin, Scale* scale) 
+TouchSensor::TouchSensor(uint8_t touchPin, Scale* scale)
     : touchPin(touchPin), scalePtr(scale), displayPtr(nullptr), flowRatePtr(nullptr), touchThreshold(30000), 
-      lastTouchState(false), lastTouchTime(0), touchStartTime(0), debounceDelay(200),
-      longPressDetected(false), delayedTarePending(false), delayedTareTime(0) {
+      lastTouchState(false), lastTouchTime(0), touchStartTime(0), debounceDelay(400),
+      longPressDetected(false), delayedTarePending(false), delayedTareTime(0),
+      gpio4HandlingInProgress(false) {
 }
 
 void TouchSensor::begin() {
@@ -30,26 +31,36 @@ void TouchSensor::update() {
                 longPressDetected = false;
                 Serial.println("Touch started");
             } else {
-                // Touch ended
-                unsigned long pressDuration = currentTime - touchStartTime;
-                
-                if (!longPressDetected) {
-                    if (pressDuration >= WIFI_TOGGLE_DURATION) {
-                        // Very long press (5+ seconds) - WiFi toggle
-                        handleWiFiToggle();
-                        Serial.println("Very long press detected - WiFi toggle");
-                    } else if (pressDuration >= 500) {
-                        // Medium press (500ms+) - Status page toggle
-                        handleStatusPageToggle();
-                        Serial.println("Medium press detected - status page toggle");
-                    } else {
-                        // Short press - Tare
-                        scheduleDelayedTare();
-                        Serial.println("Short press detected - tare");
+                // Touch ended - guard against re-entry from button bounce
+                if (!gpio4HandlingInProgress) {
+                    gpio4HandlingInProgress = true;  // Set flag to prevent re-entry
+                    
+                    unsigned long pressDuration = currentTime - touchStartTime;
+                    
+                    if (!longPressDetected) {
+                        if (pressDuration >= WIFI_TOGGLE_DURATION) {
+                            // Very long press (5+ seconds) - WiFi toggle
+                            handleWiFiToggle();
+                            Serial.println("Very long press detected - WiFi toggle");
+                        } else if (pressDuration >= 500) {
+                            // Medium press (500ms+) - Status page toggle
+                            handleStatusPageToggle();
+                            Serial.println("Medium press detected - status page toggle");
+                        } else {
+                            // Short press - Check for dual button and optionally tare
+                            if (displayPtr != nullptr && displayPtr->onTareButtonShortPress()) {
+                                scheduleDelayedTare();
+                                Serial.println("Short press detected - tare");
+                            } else {
+                                Serial.println("Short press detected - dual button, auto-brew toggled");
+                            }
+                        }
                     }
+                    longPressDetected = false;
+                    Serial.println("Touch ended");
+                    
+                    gpio4HandlingInProgress = false;  // Clear flag after handling
                 }
-                longPressDetected = false;
-                Serial.println("Touch ended");
             }
             lastTouchState = currentTouchState;
             lastTouchTime = currentTime;
@@ -159,16 +170,31 @@ void TouchSensor::checkDelayedTare() {
             scalePtr->tare();
             Serial.println("Scale tared successfully");
             
-            // Reset timer when manual tare is pressed
-            if (displayPtr != nullptr) {
-                displayPtr->resetTimer();
-                Serial.println("Timer reset with manual tare");
-            }
-            
             // Reset flow rate averaging for fresh brew
             if (flowRatePtr != nullptr) {
                 flowRatePtr->resetTimerAveraging();
                 Serial.println("Flow rate averaging reset for fresh brew");
+            }
+            
+            // Handle timer based on current state
+            if (displayPtr != nullptr) {
+                using TimerState = Display::TimerState;
+                TimerState state = displayPtr->getTimerState();
+                
+                if (state == TimerState::RUNNING) {
+                    // Keep timer running, just reset auto-brew detection
+                    displayPtr->resetAutoBrewDetection();
+                    Serial.println("Tare in RUNNING: keeping timer, reset auto-brew");
+                } else if (state == TimerState::STOPPED) {
+                    // Reset timer and auto-brew, go to IDLE
+                    displayPtr->resetTimer();
+                    displayPtr->resetAutoBrewDetection();
+                    Serial.println("Tare in STOPPED: resetting timer and auto-brew");
+                } else {
+                    // IDLE: just reset auto-brew detection
+                    displayPtr->resetAutoBrewDetection();
+                    Serial.println("Tare in IDLE: reset auto-brew detection");
+                }
             }
             
             // Show completion message on display if available

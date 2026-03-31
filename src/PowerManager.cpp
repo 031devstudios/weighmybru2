@@ -4,9 +4,10 @@
 PowerManager::PowerManager(uint8_t sleepTouchPin, Display* display) 
     : sleepTouchPin(sleepTouchPin), displayPtr(display), sleepTouchThreshold(0),
       lastSleepTouchState(false), lastSleepTouchTime(0), touchStartTime(0),
-      debounceDelay(200), sleepCountdownStart(0), sleepCountdownActive(false),
+      debounceDelay(400), sleepCountdownStart(0), sleepCountdownActive(false),
       longPressDetected(false), cancelledRecently(false), cancelTime(0),
-      timerState(TimerState::STOPPED), lastTimerControlTime(0) {
+      timerState(TimerState::STOPPED), lastTimerControlTime(0),
+      gpio3HandlingInProgress(false) {
 }
 
 void PowerManager::begin() {
@@ -67,18 +68,26 @@ void PowerManager::update() {
                     if (displayPtr != nullptr) {
                         displayPtr->showSleepCancelledMessage();
                     }
-                } else if (!cancelledRecently) {
-                    // Handle timer control
+                } else if (!cancelledRecently && !gpio3HandlingInProgress) {
+                    // Handle timer control - but not if already handling a press
                     touchStartTime = currentTime;
                     longPressDetected = false;
                     Serial.println("Timer control touch started");
                 }
             } else {
-                // Touch ended
-                if (!sleepCountdownActive && !longPressDetected && !cancelledRecently) {
-                    // Handle timer control
-                    Serial.println("Timer control executed");
-                    handleTimerControl();
+                // Touch ended - guard against re-entry from button bounce
+                // Display's onSleepButtonShortPress() handles all timer state transitions
+                if (!sleepCountdownActive && !longPressDetected && !cancelledRecently && !gpio3HandlingInProgress) {
+                    gpio3HandlingInProgress = true;  // Set flag to prevent re-entry
+                    
+                    if (displayPtr != nullptr) {
+                        bool consumed = displayPtr->onSleepButtonShortPress();
+                        if (consumed) {
+                            Serial.println("Timer control fully handled by Display state machine");
+                        }
+                    }
+                    
+                    gpio3HandlingInProgress = false;  // Clear flag after handling
                 }
                 // Don't reset longPressDetected here if countdown is active
                 if (!sleepCountdownActive) {
@@ -173,27 +182,29 @@ void PowerManager::handleTimerControl() {
     lastTimerControlTime = currentTime;
     Serial.println("Timer control triggered");
     
-    // Unified mode timer control
-    switch (timerState) {
-        case TimerState::STOPPED:
-            // First tap - start timer
+    // Query Display's actual timer state - use Display as single source of truth
+    using DisplayTimerState = Display::TimerState;
+    DisplayTimerState displayState = displayPtr->getTimerState();
+    
+    // Delegate timer control to Display's state machine
+    // PowerManager doesn't maintain its own state - it just forwards to Display
+    switch (displayState) {
+        case DisplayTimerState::IDLE:
+            // Timer is stopped - start it
             displayPtr->startTimer();
-            timerState = TimerState::RUNNING;
-            Serial.println("Timer started");
+            Serial.println("Timer started (from IDLE)");
             break;
             
-        case TimerState::RUNNING:
-            // Second tap - stop/pause timer
+        case DisplayTimerState::RUNNING:
+            // Timer is running - stop it
             displayPtr->stopTimer();
-            timerState = TimerState::PAUSED;
-            Serial.println("Timer stopped/paused");
+            Serial.println("Timer stopped (from RUNNING)");
             break;
             
-        case TimerState::PAUSED:
-            // Third tap - reset timer
+        case DisplayTimerState::STOPPED:
+            // Timer is paused - reset it
             displayPtr->resetTimer();
-            timerState = TimerState::STOPPED;
-            Serial.println("Timer reset");
+            Serial.println("Timer reset (from STOPPED)");
             break;
     }
 }

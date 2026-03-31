@@ -93,6 +93,9 @@ void setup() {
     // Set reduced brightness for power optimization
     oledDisplay.setBrightness(128);  // 50% brightness vs 255 max
     Serial.println("Display brightness set to 50% for power optimization");
+    
+    // Link scale and display for Auto Brew Timer notifications
+    scale.setDisplayPtr(&oledDisplay);
   }
   
   // Check wake-up reason and show appropriate message
@@ -254,6 +257,7 @@ void loop() {
   if (millis() - lastWeightUpdate >= 50) { // Reduced from 20ms to 50ms (20Hz from 50Hz)
     float weight = scale.getWeight();
     flowRate.update(weight);
+    oledDisplay.updateAutoBrewFlowDetection(flowRate.getFlowRate());
     lastWeightUpdate = millis();
   }
   

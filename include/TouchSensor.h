@@ -29,6 +29,7 @@ private:
     unsigned long touchStartTime;
     unsigned long debounceDelay;
     bool longPressDetected;
+    bool gpio4HandlingInProgress;  // Prevents re-entry during GPIO4 handling
     
     // Delayed tare functionality for mounted touch sensors
     bool delayedTarePending;
