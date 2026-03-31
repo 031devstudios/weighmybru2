@@ -120,6 +120,11 @@ private:
     int autoBrewFlowSampleIndex;            // Circular buffer index
     int autoBrewFlowSampleCount;            // Number of valid samples
     
+    // Auto-brew pulse indicator state
+    bool autoBrewPulseState;               // Current pulse visibility state
+    unsigned long lastPulseToggleTime;     // Last pulse toggle timestamp
+    static const unsigned long PULSE_INTERVAL = 500; // Pulse toggle interval (ms)
+    
     // Dual-button detection for Auto Brew Timer toggle
     unsigned long lastTareButtonPressTime;
     unsigned long lastSleepButtonPressTime;

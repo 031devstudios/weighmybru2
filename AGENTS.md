@@ -8,6 +8,10 @@
 - **Web UI**: Alpine.js + Chart.js on LittleFS
 - **Repository**: github.com/031devstudios/weighmybru2
 
+## IMPORTANT: ASK THE USER EVERY TIME FOR CONFIRMATION BEFORE COMMIT
+
+**NEVER** run `git commit` without explicit user confirmation. Always present the staged changes and proposed commit message, wait for user approval, then commit only after they explicitly say to proceed.
+
 ## Build Commands
 
 ```bash
@@ -90,9 +94,12 @@ test/                   # PlatformIO unit tests
 The `Display` class owns the timer system:
 - `Display::startTimer()` - Start timer, begin flow averaging
 - `Display::stopTimer()` - Stop timer, stop flow averaging
-- `Display::resetTimer()` - Reset timer to zero
+- `Display::resetTimer()` - Reset timer to zero AND sets timerState to IDLE
 - `Display::isTimerRunning()` - Check if timer active
 - `Display::getElapsedTime()` - Get elapsed milliseconds
+- `Display::getTimerState()` - Returns TimerState enum (IDLE, RUNNING, STOPPED)
+
+**Timer States**: IDLE (waiting), RUNNING (timing), STOPPED (paused after brew)
 
 ### Scale Brewing States
 
@@ -109,7 +116,7 @@ The `Display` class owns the timer system:
 | POST | `/api/timer/start` | Start timer |
 | POST | `/api/timer/stop` | Stop timer |
 | POST | `/api/timer/reset` | Reset timer |
-| POST | `/api/tare` | Tare scale, reset timer |
+| POST | `/api/tare` | Tare scale; if STOPPED resets timer, if RUNNING resets auto-brew only |
 | GET | `/api/weight-fast` | Fast weight-only response |
 | GET | `/api/brew/weight` | GaggiMate-compatible weight |
 | GET | `/api/brew/status` | GaggiMate-compatible status |

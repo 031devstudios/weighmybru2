@@ -17,6 +17,7 @@ Display::Display(uint8_t sdaPin, uint8_t sclPin, Scale* scale, FlowRate* flowRat
       autoBrewStartThreshold(0.7f), autoBrewSlopeThreshold(0.5f),
       autoBrewWaitingForStart(true), autoBrewWaitingForStop(false),
       autoBrewFlowSampleIndex(0), autoBrewFlowSampleCount(0),
+      autoBrewPulseState(true), lastPulseToggleTime(0),
       lastTareButtonPressTime(0), lastSleepButtonPressTime(0) {
     display = new Adafruit_SSD1306(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
     // Initialize flow samples array
@@ -940,9 +941,28 @@ void Display::showWeightWithFlowAndTimer(float weight) {
     display->print(String(timerDecimal));
     
     // Draw "T" label at far right (size 1)
-    display->setTextSize(1);
-    display->setCursor(timerLabelX, 0); // Far right position
-    display->print("T");
+    // Pulse the "T" when waiting for brew to start (IDLE + autoBrewWaitingForStart + enabled)
+    bool shouldPulse = (timerState == TimerState::IDLE && 
+                        autoBrewWaitingForStart && 
+                        autoBrewTimerEnabled);
+    
+    if (shouldPulse) {
+        unsigned long currentTime = millis();
+        if (currentTime - lastPulseToggleTime >= PULSE_INTERVAL) {
+            autoBrewPulseState = !autoBrewPulseState;
+            lastPulseToggleTime = currentTime;
+        }
+        if (autoBrewPulseState) {
+            display->setTextSize(1);
+            display->setCursor(timerLabelX, 0);
+            display->print("T");
+        }
+    } else {
+        autoBrewPulseState = true;
+        display->setTextSize(1);
+        display->setCursor(timerLabelX, 0);
+        display->print("T");
+    }
     
     // === CUSTOM FLOW RATE RENDERING (like weight) ===
     bool flowNegative = displayFlowRate < 0;
