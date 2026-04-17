@@ -19,6 +19,7 @@
 #include "BatteryMonitor.h"
 #include "BoardConfig.h"
 #include "Version.h"
+#include "SmbComms.h"
 
 // Board-specific pin configuration
 uint8_t dataPin = HX711_DATA_PIN;     // HX711 Data pin
@@ -36,6 +37,7 @@ TouchSensor touchSensor(touchPin, &scale);
 Display oledDisplay(sdaPin, sclPin, &scale, &flowRate);
 PowerManager powerManager(sleepTouchPin, &oledDisplay);
 BatteryMonitor batteryMonitor(batteryPin);
+SmbComms smbComms;
 
 void setup() {
   Serial.begin(115200);
@@ -224,7 +226,14 @@ void setup() {
   // Link flow rate to touch sensor for averaging reset on tare
   touchSensor.setFlowRate(&flowRate);
 
-  setupWebServer(scale, flowRate, bluetoothScale, oledDisplay, batteryMonitor);
+  // Initialise StopMyBru ESP-NOW link (after WiFi is up)
+  smbComms.begin();
+
+  // Wire timer start/stop events to StopMyBru relay
+  powerManager.setRelayOnCallback( [](){ smbComms.sendRelayOn();  });
+  powerManager.setRelayOffCallback([](){ smbComms.sendRelayOff(); });
+
+  setupWebServer(scale, flowRate, bluetoothScale, oledDisplay, batteryMonitor, smbComms);
   
   // CRITICAL: After full initialization, check if WiFi should be disabled
   // This exactly replicates the tare button scenario: WiFi started, then disabled
@@ -254,6 +263,8 @@ void loop() {
   if (millis() - lastWeightUpdate >= 50) { // Reduced from 20ms to 50ms (20Hz from 50Hz)
     float weight = scale.getWeight();
     flowRate.update(weight);
+    // Broadcast live weight to StopMyBru relay module (no-op if not paired)
+    smbComms.sendWeightUpdate(weight);
     lastWeightUpdate = millis();
   }
   
@@ -274,6 +285,9 @@ void loop() {
     lastBLEUpdate = millis();
   }
   
+  // Drive StopMyBru pairing state machine
+  smbComms.update();
+
   // Update touch sensor
   touchSensor.update();
   

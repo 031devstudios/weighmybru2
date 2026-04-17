@@ -180,6 +180,7 @@ void PowerManager::handleTimerControl() {
             displayPtr->startTimer();
             timerState = TimerState::RUNNING;
             Serial.println("Timer started");
+            if (_relayOnCb) _relayOnCb();   // Notify StopMyBru relay ON
             break;
             
         case TimerState::RUNNING:
@@ -187,6 +188,7 @@ void PowerManager::handleTimerControl() {
             displayPtr->stopTimer();
             timerState = TimerState::PAUSED;
             Serial.println("Timer stopped/paused");
+            if (_relayOffCb) _relayOffCb(); // Notify StopMyBru relay OFF
             break;
             
         case TimerState::PAUSED:
@@ -194,6 +196,7 @@ void PowerManager::handleTimerControl() {
             displayPtr->resetTimer();
             timerState = TimerState::STOPPED;
             Serial.println("Timer reset");
+            if (_relayOffCb) _relayOffCb(); // Notify StopMyBru relay OFF
             break;
     }
 }

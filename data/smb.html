@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>WeighMyBru – StopMyBru</title>
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <link rel="stylesheet" href="/output.css">
+  <script src="/js/alpine.min.js" defer></script>
+  <link rel="stylesheet" href="/css/all.min.css">
+</head>
+<body class="bg-black-background text-white">
+
+<div class="md:flex flex-col md:flex-row md:min-h-screen w-full font-light"
+     x-data="smbApp()" x-init="init()">
+
+  <!-- ── Sidebar ──────────────────────────────────────────────────────────── -->
+  <div @click.away="open = false" class="flex flex-col w-full md:w-64 text-gray-700 bg-black-discord dark-mode:text-gray-200 dark-mode:bg-gray-800 flex-shrink-0" x-data="{ open: false }">
+    <div class="flex-shrink-0 px-8 py-4 flex flex-row items-center justify-between">
+      <a href="#" class="text-lg font-semibold tracking-widest text-green-600 bg-black-discord uppercase rounded-lg dark-mode:text-white focus:outline-none focus:shadow-outline">WeighMyBru</a>
+      <button class="rounded-lg md:hidden focus:outline-none focus:shadow-outline" @click="open = !open">
+        <svg fill="currentColor" viewBox="0 0 20 20" class="w-6 h-6">
+          <path x-show="!open" fill-rule="evenodd" d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM9 15a1 1 0 011-1h6a1 1 0 110 2h-6a1 1 0 01-1-1z" clip-rule="evenodd"></path>
+          <path x-show="open" fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+        </svg>
+      </button>
+    </div>
+    <nav :class="{'block': open, 'hidden': !open}" class="flex-grow md:block bg-black-discord px-4 pb-4 md:pb-0 md:overflow-y-auto">
+      <a class="block px-4 py-2 mt-2 text-sm font-semibold text-gray-400 bg-transparent rounded-lg hover:text-stone-50 focus:text-stone-50 hover:bg-black-hover focus:bg-black-select focus:outline-none focus:shadow-outline" href="/"><i class="fa fa-tachometer mr-2" aria-hidden="true" style="color: rgb(71, 168, 100);"></i>Dashboard</a>
+      <a class="block px-4 py-2 mt-2 text-sm font-semibold text-gray-400 bg-transparent rounded-lg hover:text-stone-50 focus:text-stone-50 hover:bg-black-hover focus:bg-black-select focus:outline-none focus:shadow-outline" href="/calibration.html"><i class="fa fa-balance-scale mr-2" aria-hidden="true" style="color: rgb(71, 168, 100);"></i>Calibration</a>
+      <a class="block px-4 py-2 mt-2 text-sm font-semibold text-gray-400 bg-transparent rounded-lg hover:text-stone-50 focus:text-stone-50 hover:bg-black-hover focus:bg-black-select focus:outline-none focus:shadow-outline" href="/settings.html"><i class="fa fa-cogs mr-2" aria-hidden="true" style="color: rgb(71, 168, 100);"></i>Settings</a>
+      <a class="block px-4 py-2 mt-2 text-sm font-semibold text-gray-400 bg-transparent rounded-lg hover:text-stone-50 focus:text-stone-50 hover:bg-black-hover focus:bg-black-select focus:outline-none focus:shadow-outline" href="/updates.html"><i class="fa fa-upload mr-2" aria-hidden="true" style="color: rgb(71, 168, 100);"></i>Updates</a>
+      <a class="block px-4 py-2 mt-2 text-sm font-semibold text-stone-50 bg-black-select rounded-lg" href="/smb.html"><i class="fa fa-coffee mr-2" aria-hidden="true" style="color: rgb(71, 168, 100);"></i>StopMyBru</a>
+    </nav>
+  </div>
+
+  <!-- ── Main content ─────────────────────────────────────────────────────── -->
+  <main class="flex-grow overflow-y-auto p-8">
+    <h1 class="text-3xl text-white font-bold mb-2">StopMyBru</h1>
+    <p class="text-gray-400 text-sm mb-6">Relay module that cuts the brew pump when your target weight is reached.</p>
+
+    <div class="space-y-6 max-w-xl">
+
+      <!-- ── Status card ─────────────────────────────────────────────────── -->
+      <div class="bg-black-select p-6 rounded shadow">
+        <h2 class="text-xl font-semibold mb-4">Status</h2>
+
+        <div class="flex items-center mb-3">
+          <span class="text-gray-400 w-32">Connection</span>
+          <span x-show="status.paired"
+                class="px-2 py-0.5 rounded text-xs font-bold bg-green-700 text-white">PAIRED</span>
+          <span x-show="!status.paired"
+                class="px-2 py-0.5 rounded text-xs font-bold bg-gray-600 text-white">NOT PAIRED</span>
+        </div>
+
+        <div class="flex items-center mb-3">
+          <span class="text-gray-400 w-32">Relay</span>
+          <span x-show="status.relayOn"
+                class="px-2 py-0.5 rounded text-xs font-bold bg-red-600 text-white">ON</span>
+          <span x-show="!status.relayOn"
+                class="px-2 py-0.5 rounded text-xs font-bold bg-gray-700 text-white">OFF</span>
+        </div>
+
+        <div class="flex items-center mb-3">
+          <span class="text-gray-400 w-32">SMB MAC</span>
+          <span class="text-mono text-sm" x-text="status.smbMac || '—'"></span>
+        </div>
+
+        <div class="flex items-center mb-3">
+          <span class="text-gray-400 w-32">Last weight</span>
+          <span x-text="status.paired ? status.lastWeight.toFixed(1) + ' g' : '—'"></span>
+        </div>
+
+        <div class="flex items-center">
+          <span class="text-gray-400 w-32">Last seen</span>
+          <span x-text="lastSeenText()"></span>
+        </div>
+      </div>
+
+      <!-- ── Setpoint card ───────────────────────────────────────────────── -->
+      <div class="bg-black-select p-6 rounded shadow">
+        <h2 class="text-xl font-semibold mb-1">Target Weight</h2>
+        <p class="text-gray-400 text-sm mb-4">StopMyBru will cut the relay when the scale reaches this weight.</p>
+
+        <div class="flex items-center gap-3">
+          <input type="number" step="0.1" min="0" max="2000"
+                 x-model.number="setpointInput"
+                 class="w-32 px-3 py-2 rounded bg-black-hover text-black border border-gray-600 focus:outline-none focus:border-green-500"
+                 placeholder="36.0" />
+          <span class="text-gray-400">g</span>
+          <button @click="saveSetpoint()"
+                  class="bg-gray-600 hover:bg-button-green active:bg-green-900 text-white px-4 py-2 rounded">
+            Save
+          </button>
+        </div>
+        <p x-show="setpointMsg" x-text="setpointMsg" class="text-green-400 text-sm mt-2"></p>
+      </div>
+
+      <!-- ── Invert card ─────────────────────────────────────────────────── -->
+      <div class="bg-black-select p-6 rounded shadow">
+        <h2 class="text-xl font-semibold mb-1">Relay Polarity</h2>
+        <p class="text-gray-400 text-sm mb-4">
+          Most relay boards are <strong>active-LOW</strong> (relay energised when signal is LOW).
+          Enable <em>Invert</em> only if your board is active-HIGH.
+        </p>
+
+        <label class="flex items-center gap-3 cursor-pointer">
+          <input type="checkbox" x-model="invertInput"
+                 class="w-5 h-5 rounded accent-green-500" />
+          <span class="text-sm">Invert relay signal (active-HIGH board)</span>
+        </label>
+        <button @click="saveInvert()"
+                class="mt-3 bg-gray-600 hover:bg-button-green active:bg-green-900 text-white px-4 py-2 rounded">
+          Save
+        </button>
+        <p x-show="invertMsg" x-text="invertMsg" class="text-green-400 text-sm mt-2"></p>
+      </div>
+
+      <!-- ── Manual override card ────────────────────────────────────────── -->
+      <div class="bg-black-select p-6 rounded shadow">
+        <h2 class="text-xl font-semibold mb-1">Manual Override</h2>
+        <p class="text-gray-400 text-sm mb-4">Force the relay on or off regardless of weight. Only works while paired.</p>
+
+        <div class="flex gap-3">
+          <button @click="relayOn()"
+                  :disabled="!status.paired"
+                  class="bg-red-700 hover:bg-red-600 disabled:opacity-40 disabled:cursor-not-allowed text-white px-5 py-2 rounded font-semibold">
+            <i class="fa fa-power-off mr-1"></i> Force ON
+          </button>
+          <button @click="relayOff()"
+                  :disabled="!status.paired"
+                  class="bg-gray-600 hover:bg-gray-500 disabled:opacity-40 disabled:cursor-not-allowed text-white px-5 py-2 rounded font-semibold">
+            <i class="fa fa-ban mr-1"></i> Force OFF
+          </button>
+        </div>
+        <p x-show="relayMsg" x-text="relayMsg" class="text-green-400 text-sm mt-2"></p>
+      </div>
+
+      <!-- ── Pairing card ────────────────────────────────────────────────── -->
+      <div class="bg-black-select p-6 rounded shadow">
+        <h2 class="text-xl font-semibold mb-1">Pairing</h2>
+        <p class="text-gray-400 text-sm mb-4">
+          Power on your StopMyBru module, then press <strong>Start Pairing</strong>.
+          WeighMyBru will broadcast for 30 seconds while scanning for the module.
+        </p>
+
+        <!-- Pairing status indicator -->
+        <div class="mb-4 text-sm" x-show="pairingStateText">
+          <span class="text-gray-400">State: </span>
+          <span :class="{
+              'text-green-400':  status.pairingState === 3,
+              'text-yellow-400': status.pairingState === 1 || status.pairingState === 2,
+              'text-gray-400':   status.pairingState === 0
+            }" x-text="pairingStateText"></span>
+          <span x-show="pairingCountdown > 0" class="text-gray-500 ml-2">(<span x-text="pairingCountdown"></span>s)</span>
+        </div>
+
+        <div class="flex gap-3 flex-wrap">
+          <button @click="startPairing()"
+                  :disabled="status.pairingState === 1 || status.pairingState === 2"
+                  class="bg-gray-600 hover:bg-button-green active:bg-green-900 disabled:opacity-40 disabled:cursor-not-allowed text-white px-4 py-2 rounded">
+            <i class="fa fa-search mr-1"></i>
+            <span x-text="status.pairingState === 1 || status.pairingState === 2 ? 'Scanning…' : 'Start Pairing'"></span>
+          </button>
+          <button @click="unpair()"
+                  :disabled="!status.paired && status.pairingState === 0"
+                  class="bg-red-800 hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed text-white px-4 py-2 rounded">
+            <i class="fa fa-unlink mr-1"></i> Unpair
+          </button>
+        </div>
+        <p x-show="pairingMsg" x-text="pairingMsg" class="text-sm mt-2"
+           :class="pairingMsgError ? 'text-red-400' : 'text-green-400'"></p>
+      </div>
+
+      <!-- ── SMB diagnostic link ─────────────────────────────────────────── -->
+      <div class="bg-black-select p-4 rounded shadow flex items-center gap-3" x-show="status.paired">
+        <i class="fa fa-external-link text-gray-400"></i>
+        <div>
+          <p class="text-sm text-gray-300">Open the StopMyBru built-in dashboard to view its internal diagnostics.</p>
+          <a href="http://stopmybru.local/" target="_blank"
+             class="text-green-400 hover:text-green-300 text-sm underline">stopmybru.local</a>
+        </div>
+      </div>
+
+    </div><!-- /space-y-6 -->
+  </main>
+</div>
+
+<script>
+function smbApp() {
+  return {
+    status: {
+      paired: false,
+      pairingState: 0,
+      smbMac: '',
+      relayOn: false,
+      setpoint: 36.0,
+      invert: false,
+      lastWeight: 0,
+      lastSeenMs: 0
+    },
+    setpointInput: 36.0,
+    invertInput: false,
+    setpointMsg: '',
+    invertMsg: '',
+    relayMsg: '',
+    pairingMsg: '',
+    pairingMsgError: false,
+    pairingCountdown: 0,
+    _pollTimer: null,
+    _countdownTimer: null,
+
+    init() {
+      this.fetchStatus();
+      this._pollTimer = setInterval(() => this.fetchStatus(), 2000);
+    },
+
+    async fetchStatus() {
+      try {
+        const r = await fetch('/api/smb/status');
+        if (!r.ok) return;
+        const d = await r.json();
+        this.status = d;
+        this.setpointInput = d.setpoint;
+        this.invertInput   = d.invert;
+      } catch (e) { /* WiFi may be down */ }
+    },
+
+    get pairingStateText() {
+      switch (this.status.pairingState) {
+        case 0: return this.status.paired ? 'Paired' : 'Idle';
+        case 1: return 'Scanning for StopMyBru…';
+        case 2: return 'Module found, confirming…';
+        case 3: return 'Paired';
+        default: return '';
+      }
+    },
+
+    lastSeenText() {
+      if (!this.status.paired) return '—';
+      const ms = this.status.lastSeenMs;
+      if (ms === 0) return 'Never';
+      const sec = Math.floor(ms / 1000);
+      if (sec < 5)  return 'Just now';
+      if (sec < 60) return sec + 's ago';
+      return Math.floor(sec / 60) + 'm ago';
+    },
+
+    async saveSetpoint() {
+      const fd = new FormData();
+      fd.append('value', this.setpointInput);
+      const r = await fetch('/api/smb/setpoint', { method: 'POST', body: fd });
+      this.setpointMsg = r.ok ? 'Saved!' : 'Error saving setpoint';
+      setTimeout(() => this.setpointMsg = '', 2500);
+    },
+
+    async saveInvert() {
+      const fd = new FormData();
+      fd.append('invert', this.invertInput ? 'true' : 'false');
+      const r = await fetch('/api/smb/invert', { method: 'POST', body: fd });
+      this.invertMsg = r.ok ? 'Saved!' : 'Error saving polarity';
+      setTimeout(() => this.invertMsg = '', 2500);
+    },
+
+    async relayOn() {
+      const r = await fetch('/api/smb/relay/on', { method: 'POST' });
+      this.relayMsg = r.ok ? 'Relay ON command sent' : 'Failed';
+      setTimeout(() => this.relayMsg = '', 2500);
+    },
+
+    async relayOff() {
+      const r = await fetch('/api/smb/relay/off', { method: 'POST' });
+      this.relayMsg = r.ok ? 'Relay OFF command sent' : 'Failed';
+      setTimeout(() => this.relayMsg = '', 2500);
+    },
+
+    async startPairing() {
+      const r = await fetch('/api/smb/pair/start', { method: 'POST' });
+      if (r.ok) {
+        this.pairingMsg = 'Pairing started — waiting for StopMyBru…';
+        this.pairingMsgError = false;
+        this.pairingCountdown = 30;
+        if (this._countdownTimer) clearInterval(this._countdownTimer);
+        this._countdownTimer = setInterval(() => {
+          this.pairingCountdown--;
+          if (this.pairingCountdown <= 0 || this.status.paired) {
+            clearInterval(this._countdownTimer);
+            this.pairingCountdown = 0;
+            if (!this.status.paired) {
+              this.pairingMsg = 'Pairing timed out — no module found';
+              this.pairingMsgError = true;
+            } else {
+              this.pairingMsg = 'Paired successfully!';
+              this.pairingMsgError = false;
+            }
+          }
+        }, 1000);
+      } else {
+        this.pairingMsg = 'Failed to start pairing';
+        this.pairingMsgError = true;
+      }
+    },
+
+    async unpair() {
+      const r = await fetch('/api/smb/unpair', { method: 'POST' });
+      if (r.ok) {
+        this.pairingMsg = 'Unpaired';
+        this.pairingMsgError = false;
+        await this.fetchStatus();
+      }
+      setTimeout(() => this.pairingMsg = '', 3000);
+    }
+  };
+}
+</script>
+</body>
+</html>

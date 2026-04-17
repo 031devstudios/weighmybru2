@@ -108,7 +108,7 @@ AsyncWebServer server(80);
  * Response: {"weight":45.23,"flowrate":2.15}
  */
 
-void setupWebServer(Scale &scale, FlowRate &flowRate, BluetoothScale &bluetoothScale, Display &display, BatteryMonitor &battery) {
+void setupWebServer(Scale &scale, FlowRate &flowRate, BluetoothScale &bluetoothScale, Display &display, BatteryMonitor &battery, SmbComms &smb) {
   if (!LittleFS.begin()) {
     Serial.println();
     Serial.println("=====================================");
@@ -198,18 +198,21 @@ void setupWebServer(Scale &scale, FlowRate &flowRate, BluetoothScale &bluetoothS
   });
 
   // Timer control endpoints
-  server.on("/api/timer/start", HTTP_POST, [&display](AsyncWebServerRequest *request) {
+  server.on("/api/timer/start", HTTP_POST, [&display, &smb](AsyncWebServerRequest *request) {
     display.startTimer();
+    smb.sendRelayOn();
     request->send(200, "text/plain", "Timer started");
   });
 
-  server.on("/api/timer/stop", HTTP_POST, [&display](AsyncWebServerRequest *request) {
+  server.on("/api/timer/stop", HTTP_POST, [&display, &smb](AsyncWebServerRequest *request) {
     display.stopTimer();
+    smb.sendRelayOff();
     request->send(200, "text/plain", "Timer stopped");
   });
 
-  server.on("/api/timer/reset", HTTP_POST, [&display](AsyncWebServerRequest *request) {
+  server.on("/api/timer/reset", HTTP_POST, [&display, &smb](AsyncWebServerRequest *request) {
     display.resetTimer();
+    smb.sendRelayOff();
     request->send(200, "text/plain", "Timer reset");
   });
 
@@ -647,6 +650,83 @@ void setupWebServer(Scale &scale, FlowRate &flowRate, BluetoothScale &bluetoothS
     } else {
       request->send(400, "text/plain", "Missing confirmation parameter. Use 'confirm=yes' to reset NVS.");
     }
+  });
+
+  // ── StopMyBru (SMB) API ──────────────────────────────────────────────────
+
+  server.on("/api/smb/status", HTTP_GET, [&smb](AsyncWebServerRequest *request) {
+    const uint8_t *mac = smb.getSmbMac();
+    char macStr[18];
+    snprintf(macStr, sizeof(macStr), "%02X:%02X:%02X:%02X:%02X:%02X",
+             mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+    String json = "{";
+    json += "\"paired\":" + String(smb.isPaired() ? "true" : "false") + ",";
+    json += "\"pairingState\":" + String((int)smb.getPairingState()) + ",";
+    json += "\"smbMac\":\"" + String(macStr) + "\",";
+    json += "\"relayOn\":" + String(smb.getSmbRelayOn() ? "true" : "false") + ",";
+    json += "\"setpoint\":" + String(smb.getSetpoint(), 1) + ",";
+    json += "\"invert\":" + String(smb.isInverted() ? "true" : "false") + ",";
+    json += "\"lastWeight\":" + String(smb.getSmbLastWeight(), 1) + ",";
+    json += "\"lastSeenMs\":" + String(smb.getLastSeenMs());
+    json += "}";
+    request->send(200, "application/json", json);
+  });
+
+  server.on("/api/smb/pair/start", HTTP_POST, [&smb](AsyncWebServerRequest *request) {
+    smb.startPairing();
+    request->send(200, "text/plain", "Pairing started");
+  });
+
+  server.on("/api/smb/pair/status", HTTP_GET, [&smb](AsyncWebServerRequest *request) {
+    String state;
+    switch (smb.getPairingState()) {
+      case SmbPairingState::IDLE:              state = "idle";     break;
+      case SmbPairingState::BROADCASTING:      state = "scanning"; break;
+      case SmbPairingState::AWAITING_CONFIRM:  state = "found";    break;
+      case SmbPairingState::PAIRED:            state = "paired";   break;
+      default:                                 state = "unknown";  break;
+    }
+    const uint8_t *mac = smb.getSmbMac();
+    char macStr[18];
+    snprintf(macStr, sizeof(macStr), "%02X:%02X:%02X:%02X:%02X:%02X",
+             mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+    String json = "{\"state\":\"" + state + "\",\"smbMac\":\"" + String(macStr) + "\"}";
+    request->send(200, "application/json", json);
+  });
+
+  server.on("/api/smb/setpoint", HTTP_POST, [&smb](AsyncWebServerRequest *request) {
+    if (request->hasParam("value", true)) {
+      float val = request->getParam("value", true)->value().toFloat();
+      smb.setSetpoint(val);
+      request->send(200, "text/plain", "Setpoint updated");
+    } else {
+      request->send(400, "text/plain", "Missing 'value' parameter");
+    }
+  });
+
+  server.on("/api/smb/relay/on", HTTP_POST, [&smb](AsyncWebServerRequest *request) {
+    smb.sendRelayOn();
+    request->send(200, "text/plain", "Relay on sent");
+  });
+
+  server.on("/api/smb/relay/off", HTTP_POST, [&smb](AsyncWebServerRequest *request) {
+    smb.sendRelayOff();
+    request->send(200, "text/plain", "Relay off sent");
+  });
+
+  server.on("/api/smb/invert", HTTP_POST, [&smb](AsyncWebServerRequest *request) {
+    if (request->hasParam("invert", true)) {
+      bool inv = request->getParam("invert", true)->value() == "true";
+      smb.setInvert(inv);
+      request->send(200, "text/plain", "Invert updated");
+    } else {
+      request->send(400, "text/plain", "Missing 'invert' parameter");
+    }
+  });
+
+  server.on("/api/smb/unpair", HTTP_POST, [&smb](AsyncWebServerRequest *request) {
+    smb.unpair();
+    request->send(200, "text/plain", "Unpaired");
   });
 
   // Serve static files for non-API paths
