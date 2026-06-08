@@ -123,7 +123,7 @@
         <label for="autoSleepTime" class="block mb-2">Time To Sleep:</label>
         <div class="flex items-center mb-1">
           <input type="number" id="autoSleepTime" name="autoSleepTime" min="10" max="3600" step="10"
-                 class="w-32 px-3 py-2 rounded text-black" value="300" />
+                 class="w-32 px-3 py-2 rounded text-black" />
           <span class="text-gray-400 ml-2">seconds</span>
         </div>
         <p class="text-gray-400 text-sm mb-4">How long the weight must be stable before the scale sleeps (min 10s).</p>
@@ -132,7 +132,7 @@
         <label for="autoSleepDrift" class="block mb-2">Drift Ignore Weight:</label>
         <div class="flex items-center mb-1">
           <input type="number" id="autoSleepDrift" name="autoSleepDrift" min="0" max="50" step="0.1"
-                 class="w-32 px-3 py-2 rounded text-black" value="1.0" />
+                 class="w-32 px-3 py-2 rounded text-black" />
           <span class="text-gray-400 ml-2">grams</span>
         </div>
         <p class="text-gray-400 text-sm mb-4">Weight change within this value is treated as drift and ignored. The timer only resets when weight changes by more than this amount.</p>
