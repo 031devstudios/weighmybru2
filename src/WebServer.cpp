@@ -108,7 +108,7 @@ AsyncWebServer server(80);
  * Response: {"weight":45.23,"flowrate":2.15}
  */
 
-void setupWebServer(Scale &scale, FlowRate &flowRate, BluetoothScale &bluetoothScale, Display &display, BatteryMonitor &battery, SmbComms &smb) {
+void setupWebServer(Scale &scale, FlowRate &flowRate, BluetoothScale &bluetoothScale, Display &display, BatteryMonitor &battery, SmbComms &smb, PowerManager &powerManager) {
   if (!LittleFS.begin()) {
     Serial.println();
     Serial.println("=====================================");
@@ -605,7 +605,7 @@ void setupWebServer(Scale &scale, FlowRate &flowRate, BluetoothScale &bluetoothS
   });
 
   // Combined settings endpoint for faster loading
-  server.on("/api/settings", HTTP_GET, [](AsyncWebServerRequest *request) {
+  server.on("/api/settings", HTTP_GET, [&powerManager](AsyncWebServerRequest *request) {
     // Get WiFi credentials (from cache)
     String ssid = getStoredSSID();
     String password = getStoredPassword();
@@ -613,11 +613,14 @@ void setupWebServer(Scale &scale, FlowRate &flowRate, BluetoothScale &bluetoothS
     // Get decimal setting (from cache)
     int decimals = getCachedDecimals();
     
-    // Combine into single JSON response
+    // Combine into single JSON response including auto-sleep settings
     String json = "{";
     json += "\"ssid\":\"" + ssid + "\",";
     json += "\"password\":\"" + password + "\",";
-    json += "\"decimals\":" + String(decimals);
+    json += "\"decimals\":" + String(decimals) + ",";
+    json += "\"autoSleepEnabled\":" + String(powerManager.getAutoSleepEnabled() ? "true" : "false") + ",";
+    json += "\"autoSleepTime\":" + String(powerManager.getAutoSleepTime()) + ",";
+    json += "\"autoSleepDrift\":" + String(powerManager.getAutoSleepDrift(), 1);
     json += "}";
     
     request->send(200, "application/json", json);
@@ -649,6 +652,41 @@ void setupWebServer(Scale &scale, FlowRate &flowRate, BluetoothScale &bluetoothS
       ESP.restart();
     } else {
       request->send(400, "text/plain", "Missing confirmation parameter. Use 'confirm=yes' to reset NVS.");
+    }
+  });
+
+  // ── Auto-sleep API ────────────────────────────────────────────────────────
+
+  server.on("/api/auto-sleep", HTTP_GET, [&powerManager](AsyncWebServerRequest *request) {
+    String json = "{";
+    json += "\"enabled\":"       + String(powerManager.getAutoSleepEnabled() ? "true" : "false") + ",";
+    json += "\"timeToSleep\":"   + String(powerManager.getAutoSleepTime()) + ",";
+    json += "\"driftIgnore\":"   + String(powerManager.getAutoSleepDrift(), 1);
+    json += "}";
+    request->send(200, "application/json", json);
+  });
+
+  server.on("/api/auto-sleep", HTTP_POST, [&powerManager](AsyncWebServerRequest *request) {
+    bool updated = false;
+    if (request->hasParam("enabled", true)) {
+      powerManager.setAutoSleepEnabled(request->getParam("enabled", true)->value() == "true");
+      updated = true;
+    }
+    if (request->hasParam("timeToSleep", true)) {
+      int t = request->getParam("timeToSleep", true)->value().toInt();
+      if (t >= 10) powerManager.setAutoSleepTime(t);
+      updated = true;
+    }
+    if (request->hasParam("driftIgnore", true)) {
+      float d = request->getParam("driftIgnore", true)->value().toFloat();
+      if (d >= 0.0f) powerManager.setAutoSleepDrift(d);
+      updated = true;
+    }
+    if (updated) {
+      powerManager.saveAutoSleepSettings();
+      request->send(200, "application/json", "{\"status\":\"success\"}");
+    } else {
+      request->send(400, "application/json", "{\"status\":\"error\",\"message\":\"No valid parameters provided\"}");
     }
   });
 

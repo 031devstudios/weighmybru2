@@ -100,6 +100,50 @@
       </form>
       <div id="filterMessage" class="text-green-400 mb-2"></div>
       <p id="filterStatus" class="text-red-400"></p>
+
+      <h2 class="text-2xl font-semibold mb-4 mt-8">Auto Sleep</h2>
+      <div class="mb-4 p-4 bg-black-hover rounded">
+        <p class="text-sm text-gray-400 mb-4">Automatically put the scale to sleep after a period of inactivity. The timer resets whenever the weight changes beyond the drift threshold.</p>
+        
+        <!-- Enable/Disable toggle -->
+        <div class="flex items-center mb-5">
+          <span class="mr-3 text-sm font-medium text-gray-300">Auto Sleep</span>
+          <label class="relative inline-flex items-center cursor-pointer">
+            <input type="checkbox" id="autoSleepEnabled" class="sr-only peer">
+            <div class="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer
+                        peer-checked:after:translate-x-full peer-checked:after:border-white
+                        after:content-[''] after:absolute after:top-[2px] after:left-[2px]
+                        after:bg-white after:border-gray-300 after:border after:rounded-full
+                        after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
+            <span class="ml-3 text-sm text-gray-400" id="autoSleepToggleLabel">Disabled</span>
+          </label>
+        </div>
+
+        <!-- Time To Sleep -->
+        <label for="autoSleepTime" class="block mb-2">Time To Sleep:</label>
+        <div class="flex items-center mb-1">
+          <input type="number" id="autoSleepTime" name="autoSleepTime" min="10" max="3600" step="10"
+                 class="w-32 px-3 py-2 rounded text-black" value="300" />
+          <span class="text-gray-400 ml-2">seconds</span>
+        </div>
+        <p class="text-gray-400 text-sm mb-4">How long the weight must be stable before the scale sleeps (min 10s).</p>
+
+        <!-- Drift Ignore Weight -->
+        <label for="autoSleepDrift" class="block mb-2">Drift Ignore Weight:</label>
+        <div class="flex items-center mb-1">
+          <input type="number" id="autoSleepDrift" name="autoSleepDrift" min="0" max="50" step="0.1"
+                 class="w-32 px-3 py-2 rounded text-black" value="1.0" />
+          <span class="text-gray-400 ml-2">grams</span>
+        </div>
+        <p class="text-gray-400 text-sm mb-4">Weight change within this value is treated as drift and ignored. The timer only resets when weight changes by more than this amount.</p>
+
+        <button type="button" onclick="saveAutoSleepSettings()"
+                class="bg-gray-600 hover:bg-button-green active:bg-green-900 text-white px-4 py-2 rounded">
+          Save Auto Sleep Settings
+        </button>
+        <div id="autoSleepMessage" class="text-green-400 mt-2"></div>
+        <p id="autoSleepStatus" class="text-red-400"></p>
+      </div>
     </div>
   </main>
 </div>
@@ -123,6 +167,14 @@
       document.getElementById('stabilityTimeout').value = filterData.stabilityTimeout || 2000;
       document.getElementById('medianSamples').value = filterData.medianSamples || 3;
       document.getElementById('averageSamples').value = filterData.averageSamples || 5;
+
+      // Set auto-sleep settings (may be present in combined endpoint)
+      if (settingsData.autoSleepEnabled !== undefined) {
+        applyAutoSleepData(settingsData);
+      } else {
+        // Fallback: fetch separately
+        fetch('/api/auto-sleep').then(r => r.json()).then(applyAutoSleepData).catch(() => {});
+      }
     }).catch(err => {
       console.error('Error loading settings:', err);
       // Fallback to individual API calls if combined endpoint fails
@@ -135,8 +187,9 @@
       Promise.all([
         fetch('/api/wifi-creds').then(r => r.json()),
         fetch('/api/decimal-setting').then(r => r.json()),
-        fetch('/api/filter-settings').then(r => r.json())
-      ]).then(([wifiData, decimalData, filterData]) => {
+        fetch('/api/filter-settings').then(r => r.json()),
+        fetch('/api/auto-sleep').then(r => r.json())
+      ]).then(([wifiData, decimalData, filterData, autoSleepData]) => {
         document.getElementById('ssid').value = wifiData.ssid || '';
         document.getElementById('password').value = wifiData.password || '';
         if (decimalData.decimals !== undefined) {
@@ -146,7 +199,73 @@
         document.getElementById('stabilityTimeout').value = filterData.stabilityTimeout || 2000;
         document.getElementById('medianSamples').value = filterData.medianSamples || 3;
         document.getElementById('averageSamples').value = filterData.averageSamples || 5;
+        applyAutoSleepData(autoSleepData);
       }).catch(err => console.error('Error loading individual settings:', err));
+    }
+
+    // Apply auto-sleep data to the UI
+    function applyAutoSleepData(data) {
+      const enabledEl = document.getElementById('autoSleepEnabled');
+      const labelEl   = document.getElementById('autoSleepToggleLabel');
+      if (data.enabled !== undefined) {
+        enabledEl.checked = data.enabled;
+        labelEl.textContent = data.enabled ? 'Enabled' : 'Disabled';
+      }
+      if (data.timeToSleep !== undefined) {
+        document.getElementById('autoSleepTime').value = data.timeToSleep;
+      }
+      if (data.driftIgnore !== undefined) {
+        document.getElementById('autoSleepDrift').value = data.driftIgnore;
+      }
+    }
+
+    // Toggle label updates live when the checkbox is clicked
+    document.getElementById('autoSleepEnabled').addEventListener('change', function() {
+      document.getElementById('autoSleepToggleLabel').textContent = this.checked ? 'Enabled' : 'Disabled';
+    });
+
+    // Save auto-sleep settings
+    async function saveAutoSleepSettings() {
+      const msgEl    = document.getElementById('autoSleepMessage');
+      const statusEl = document.getElementById('autoSleepStatus');
+      const enabled  = document.getElementById('autoSleepEnabled').checked;
+      const time     = parseInt(document.getElementById('autoSleepTime').value, 10);
+      const drift    = parseFloat(document.getElementById('autoSleepDrift').value);
+
+      if (isNaN(time) || time < 10) {
+        statusEl.textContent = 'Time To Sleep must be at least 10 seconds.';
+        msgEl.textContent = '';
+        return;
+      }
+      if (isNaN(drift) || drift < 0) {
+        statusEl.textContent = 'Drift Ignore Weight must be 0 or greater.';
+        msgEl.textContent = '';
+        return;
+      }
+
+      const params = new URLSearchParams();
+      params.append('enabled',     enabled.toString());
+      params.append('timeToSleep', time.toString());
+      params.append('driftIgnore', drift.toFixed(1));
+
+      try {
+        const response = await fetch('/api/auto-sleep', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: params.toString()
+        });
+        const result = await response.json();
+        if (result.status === 'success') {
+          msgEl.textContent = 'Auto sleep settings saved.';
+          statusEl.textContent = '';
+        } else {
+          statusEl.textContent = result.message || 'Error saving settings.';
+          msgEl.textContent = '';
+        }
+      } catch (err) {
+        statusEl.textContent = 'Error saving auto sleep settings.';
+        console.error('Auto sleep save error:', err);
+      }
     }
 
     // Handle WiFi form submission

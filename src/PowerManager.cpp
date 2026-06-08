@@ -6,7 +6,9 @@ PowerManager::PowerManager(uint8_t sleepTouchPin, Display* display)
       lastSleepTouchState(false), lastSleepTouchTime(0), touchStartTime(0),
       debounceDelay(200), sleepCountdownStart(0), sleepCountdownActive(false),
       longPressDetected(false), cancelledRecently(false), cancelTime(0),
-      timerState(TimerState::STOPPED), lastTimerControlTime(0) {
+      timerState(TimerState::STOPPED), lastTimerControlTime(0),
+      _autoSleepEnabled(false), _autoSleepTime(300), _autoSleepDrift(1.0f),
+      _autoSleepBaseline(0.0f), _autoSleepWindowStart(0), _autoSleepHasBaseline(false) {
 }
 
 void PowerManager::begin() {
@@ -96,6 +98,16 @@ void PowerManager::update() {
             longPressDetected = true;
             Serial.println("Sleep control executed");
             handleSleepTouch();
+        }
+    }
+
+    // Auto-sleep timer check
+    if (_autoSleepEnabled && _autoSleepHasBaseline && !sleepCountdownActive) {
+        if (currentTime - _autoSleepWindowStart >= (unsigned long)_autoSleepTime * 1000UL) {
+            Serial.println("Auto-sleep: idle timeout reached - initiating sleep countdown");
+            sleepCountdownActive  = true;
+            sleepCountdownStart   = currentTime;
+            _autoSleepHasBaseline = false; // Re-arm after wake
         }
     }
 }
@@ -204,4 +216,47 @@ void PowerManager::handleTimerControl() {
 void PowerManager::resetTimerState() {
     timerState = TimerState::STOPPED;
     Serial.println("PowerManager timer state reset");
+}
+
+// ── Auto-sleep ────────────────────────────────────────────────────────────────
+
+void PowerManager::notifyWeight(float weight) {
+    if (!_autoSleepEnabled) return;
+
+    if (!_autoSleepHasBaseline) {
+        _autoSleepBaseline     = weight;
+        _autoSleepWindowStart  = millis();
+        _autoSleepHasBaseline  = true;
+        return;
+    }
+
+    // If weight has moved beyond the allowed drift, reset the idle window
+    if (fabsf(weight - _autoSleepBaseline) > _autoSleepDrift) {
+        _autoSleepBaseline    = weight;
+        _autoSleepWindowStart = millis();
+    }
+}
+
+void PowerManager::loadAutoSleepSettings() {
+    Preferences prefs;
+    if (prefs.begin("autosleep", true)) {
+        _autoSleepEnabled = prefs.getBool("enabled",     false);
+        _autoSleepTime    = prefs.getInt("timeToSleep",  300);
+        _autoSleepDrift   = prefs.getFloat("driftIgnore", 1.0f);
+        prefs.end();
+    }
+    Serial.printf("Auto-sleep loaded: enabled=%d, time=%ds, drift=%.1fg\n",
+                  _autoSleepEnabled, _autoSleepTime, _autoSleepDrift);
+}
+
+void PowerManager::saveAutoSleepSettings() {
+    Preferences prefs;
+    if (prefs.begin("autosleep", false)) {
+        prefs.putBool("enabled",     _autoSleepEnabled);
+        prefs.putInt("timeToSleep",  _autoSleepTime);
+        prefs.putFloat("driftIgnore", _autoSleepDrift);
+        prefs.end();
+    }
+    Serial.printf("Auto-sleep saved: enabled=%d, time=%ds, drift=%.1fg\n",
+                  _autoSleepEnabled, _autoSleepTime, _autoSleepDrift);
 }

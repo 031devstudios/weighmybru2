@@ -185,6 +185,7 @@ void setup() {
 
   // Initialize power manager
   powerManager.begin();
+  powerManager.loadAutoSleepSettings();
 
   // Initialize battery monitor
   batteryMonitor.begin();
@@ -233,7 +234,7 @@ void setup() {
   powerManager.setRelayOnCallback( [](){ smbComms.sendRelayOn();  });
   powerManager.setRelayOffCallback([](){ smbComms.sendRelayOff(); });
 
-  setupWebServer(scale, flowRate, bluetoothScale, oledDisplay, batteryMonitor, smbComms);
+  setupWebServer(scale, flowRate, bluetoothScale, oledDisplay, batteryMonitor, smbComms, powerManager);
   
   // CRITICAL: After full initialization, check if WiFi should be disabled
   // This exactly replicates the tare button scenario: WiFi started, then disabled
@@ -265,6 +266,8 @@ void loop() {
     flowRate.update(weight);
     // Broadcast live weight to StopMyBru relay module (no-op if not paired)
     smbComms.sendWeightUpdate(weight);
+    // Notify auto-sleep timer of current weight
+    powerManager.notifyWeight(weight);
     lastWeightUpdate = millis();
   }
   
