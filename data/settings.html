@@ -203,19 +203,22 @@
       }).catch(err => console.error('Error loading individual settings:', err));
     }
 
-    // Apply auto-sleep data to the UI
+    // Apply auto-sleep data to the UI (handles both /api/settings and /api/auto-sleep key names)
     function applyAutoSleepData(data) {
       const enabledEl = document.getElementById('autoSleepEnabled');
       const labelEl   = document.getElementById('autoSleepToggleLabel');
-      if (data.enabled !== undefined) {
-        enabledEl.checked = data.enabled;
-        labelEl.textContent = data.enabled ? 'Enabled' : 'Disabled';
+      const enabled   = data.enabled !== undefined ? data.enabled : data.autoSleepEnabled;
+      const sleepTime = data.timeToSleep !== undefined ? data.timeToSleep : data.autoSleepTime;
+      const drift     = data.driftIgnore !== undefined ? data.driftIgnore : data.autoSleepDrift;
+      if (enabled !== undefined) {
+        enabledEl.checked = enabled;
+        labelEl.textContent = enabled ? 'Enabled' : 'Disabled';
       }
-      if (data.timeToSleep !== undefined) {
-        document.getElementById('autoSleepTime').value = data.timeToSleep;
+      if (sleepTime !== undefined) {
+        document.getElementById('autoSleepTime').value = sleepTime;
       }
-      if (data.driftIgnore !== undefined) {
-        document.getElementById('autoSleepDrift').value = data.driftIgnore;
+      if (drift !== undefined) {
+        document.getElementById('autoSleepDrift').value = drift;
       }
     }
 
