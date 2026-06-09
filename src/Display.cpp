@@ -11,7 +11,9 @@ Display::Display(uint8_t sdaPin, uint8_t sclPin, Scale* scale, FlowRate* flowRat
     : sdaPin(sdaPin), sclPin(sclPin), scalePtr(scale), flowRatePtr(flowRate), bluetoothPtr(nullptr), powerManagerPtr(nullptr), batteryPtr(nullptr), wifiManagerPtr(nullptr),
       messageStartTime(0), messageDuration(2000), showingMessage(false), 
       timerStartTime(0), timerPausedTime(0), timerRunning(false), timerPaused(false),
-      lastFlowRate(0.0), showingStatusPage(false), statusPageStartTime(0) {
+      lastFlowRate(0.0), smoothedDisplayWeight(0.0f), displayWeightInitialized(false),
+      lastDisplayedWeightTenth(0), lastDisplayedWeightTenthValid(false),
+      showingStatusPage(false), statusPageStartTime(0) {
     display = new Adafruit_SSD1306(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 }
 
@@ -800,11 +802,45 @@ void Display::showWeightWithFlowAndTimer(float weight) {
     
     display->clearDisplay();
     
-    // Apply deadband to prevent flickering between 0.0g and -0.0g
-    float displayWeight = weight;
-    if (weight >= -0.1 && weight <= 0.1) {
-        displayWeight = 0.0;
+    // Smooth the OLED readout slightly so tiny espresso-scale fluctuations
+    // do not make the displayed tenth bounce around constantly.
+    if (!displayWeightInitialized) {
+        smoothedDisplayWeight = weight;
+        displayWeightInitialized = true;
+    } else {
+        float weightDelta = weight - smoothedDisplayWeight;
+        float absDelta = abs(weightDelta);
+
+        if (absDelta > 2.0f) {
+            // Keep larger changes responsive.
+            smoothedDisplayWeight = weight;
+        } else {
+            float alpha = absDelta > 0.3f ? 0.35f : 0.18f;
+            smoothedDisplayWeight += weightDelta * alpha;
+        }
     }
+
+    float displayWeight = smoothedDisplayWeight;
+
+    // Apply a small deadband around zero to prevent 0.0 / -0.0 flicker.
+    if (displayWeight >= -0.08f && displayWeight <= 0.08f) {
+        displayWeight = 0.0f;
+        smoothedDisplayWeight = 0.0f;
+    }
+
+    // Add hysteresis at the visible 0.1g resolution so the display does not
+    // keep toggling between adjacent tenths from small residual noise.
+    int roundedWeightTenth = (int)(displayWeight * 10.0f + (displayWeight >= 0.0f ? 0.5f : -0.5f));
+    if (!lastDisplayedWeightTenthValid) {
+        lastDisplayedWeightTenth = roundedWeightTenth;
+        lastDisplayedWeightTenthValid = true;
+    } else {
+        float currentShownWeight = lastDisplayedWeightTenth / 10.0f;
+        if (abs(displayWeight - currentShownWeight) >= 0.06f) {
+            lastDisplayedWeightTenth = roundedWeightTenth;
+        }
+    }
+    displayWeight = lastDisplayedWeightTenth / 10.0f;
     
     // Split weight into integer and decimal parts for custom rendering
     bool isNegative = displayWeight < 0;

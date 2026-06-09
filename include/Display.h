@@ -83,6 +83,13 @@ private:
     bool timerPaused;
     float lastFlowRate; // Store last flow rate for comparison
     
+    // Display-only weight smoothing to keep the OLED stable without
+    // affecting the underlying scale, BLE, or web readings.
+    float smoothedDisplayWeight;
+    bool displayWeightInitialized;
+    int lastDisplayedWeightTenth;
+    bool lastDisplayedWeightTenthValid;
+    
     // Status page system
     bool showingStatusPage;
     unsigned long statusPageStartTime;
