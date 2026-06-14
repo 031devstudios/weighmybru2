@@ -31,6 +31,7 @@ public:
     void showIPAddresses(); // Show startup ready message
     void showStatusPage(); // Show status page with battery, BLE, WiFi, and scale status
     void toggleStatusPage(); // Toggle between main display and status page
+    void setPowerSave(bool enable);
     void clear();
     void setBrightness(uint8_t brightness);
     
