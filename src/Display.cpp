@@ -818,19 +818,20 @@ void Display::showWeightWithFlowAndTimer(float weight) {
         decimalPart = 0;
     }
     
-    // Draw weight with custom decimal point - positioned at left middle
+    // Draw weight with custom decimal point - positioned at left middle.
+    // Reserve a small fixed sign area so the digits don't shift horizontally.
     display->setTextSize(3);
     int weightY = 5; // Middle of 32-pixel screen (size 3 text is ~21px tall, so (32-21)/2 ≈ 5)
-    display->setCursor(0, weightY);
-    
-    // Draw negative sign if needed
-    int currentX = 0;
+    const int signWidth = 5;
+
     if (isNegative) {
-        display->print("-");
-        // Calculate width of "-" in size 3
-        display->getTextBounds("-", 0, 0, &x1, &y1, &w, &h);
-        currentX += w;
+        // Draw a compact but slightly thicker minus sign so it stays readable
+        // without taking extra horizontal space from 3-digit values.
+        display->drawFastHLine(0, weightY + 9, 4, SSD1306_WHITE);
+        display->drawFastHLine(0, weightY + 10, 4, SSD1306_WHITE);
     }
+
+    int currentX = signWidth;
     
     // Draw integer part in size 3
     String intStr = String(integerPart);
