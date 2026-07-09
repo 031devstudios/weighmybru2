@@ -8,10 +8,10 @@
 #include <math.h>
 
 class Display; // Forward declaration
-
+class Scale; // Forward declaration
 class PowerManager {
 public:
-    PowerManager(uint8_t sleepTouchPin, Display* display = nullptr);
+    PowerManager(uint8_t sleepTouchPin, Display* display = nullptr, Scale* scale = nullptr);
     void begin();
     void update();
     void enterDeepSleep();
@@ -42,6 +42,7 @@ public:
 private:
     uint8_t sleepTouchPin;
     Display* displayPtr;
+    Scale* scalePtr;
     uint16_t sleepTouchThreshold;
     bool lastSleepTouchState;
     unsigned long lastSleepTouchTime;
