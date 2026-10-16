@@ -1,0 +1,295 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WeighMyBru² XIAO Wiring</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,500..800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* Layout: one wide schematic panel up top, then a pin table and build notes in two columns. */
+:root {
+  --bg: #f3f4f1;
+  --panel: #ffffff;
+  --fg: #1c211f;
+  --muted: #5d6762;
+  --line: #d5d9d4;
+  --part: #f7f8f5;
+  --part-edge: #3a423e;
+  --board: #20262a;
+  --board-fg: #e9ecee;
+  --accent: #0f7a5c;
+  --halo-black: transparent;
+  --halo-white: #8b938f;
+  --f-display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --f-body: "IBM Plex Sans", "Helvetica Neue", Arial, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #121615; --panel: #1a1f1e; --fg: #e4e8e6; --muted: #9aa5a0; --line: #2e3533;
+    --part: #222827; --part-edge: #a9b4af; --board: #0b0e10; --board-fg: #e9ecee; --accent: #4fc79f;
+    --halo-black: #a5aeaa; --halo-white: transparent; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #121615; --panel: #1a1f1e; --fg: #e4e8e6; --muted: #9aa5a0; --line: #2e3533;
+  --part: #222827; --part-edge: #a9b4af; --board: #0b0e10; --board-fg: #e9ecee; --accent: #4fc79f;
+  --halo-black: #a5aeaa; --halo-white: transparent; color-scheme: dark;
+}
+body { background: var(--bg); color: var(--fg); font-family: var(--f-body); font-size: 15px; line-height: 1.55; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-inline: 20px; padding-block: 28px 48px; display: grid; gap: 22px; }
+header { display: grid; gap: 6px; }
+.eyebrow { font-family: var(--f-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+h1 { font-family: var(--f-display); font-stretch: 80%; font-weight: 800; font-size: clamp(30px, 5vw, 46px); line-height: 1.05; margin: 0; text-wrap: balance; }
+h2 { font-family: var(--f-display); font-stretch: 85%; font-weight: 700; font-size: 21px; margin: 0 0 10px; }
+.lede { color: var(--muted); max-width: 70ch; margin: 0; }
+code { font-family: var(--f-mono); font-size: .9em; }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; }
+.diagram { overflow-x: auto; padding: 8px; }
+.diagram svg { display: block; width: 100%; min-width: 860px; height: auto; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--muted); padding: 4px 12px 10px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.dot { width: 9px; height: 9px; border-radius: 50%; background: var(--fg); display: inline-block; }
+.cols { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 22px; align-items: start; }
+@media (max-width: 860px) { .cols { grid-template-columns: minmax(0, 1fr); } }
+.card { padding: 18px 18px 14px; min-width: 0; }
+.tablebox { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th { text-align: left; font-family: var(--f-mono); font-size: 11px; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); font-weight: 500; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+td { padding: 7px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+tr[data-w] { cursor: default; }
+tr[data-w]:hover td, tr[data-w]:focus-within td, tr[data-w].on td { background: color-mix(in srgb, var(--accent) 10%, transparent); }
+td.pin { font-family: var(--f-mono); font-weight: 600; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.sw { display: inline-block; width: 22px; height: 6px; border-radius: 3px; vertical-align: middle; margin-right: 6px; box-shadow: 0 0 0 1px var(--line); }
+.const { font-family: var(--f-mono); font-size: 12px; color: var(--muted); }
+.notes { display: grid; gap: 14px; }
+.notes h3 { font-size: 14px; font-weight: 600; margin: 0 0 2px; }
+.notes p { margin: 0; color: var(--muted); font-size: 14px; }
+.src { font-size: 13px; color: var(--muted); }
+.src a { color: var(--accent); }
+/* SVG */
+.part { fill: var(--part); stroke: var(--part-edge); stroke-width: 1.5; }
+.board { fill: var(--board); stroke: var(--part-edge); stroke-width: 1.5; }
+.ptitle { font-family: var(--f-display); font-stretch: 85%; font-weight: 700; font-size: 15px; fill: var(--fg); }
+.psub { font-family: var(--f-mono); font-size: 10.5px; fill: var(--muted); }
+.plabel { font-family: var(--f-mono); font-size: 11px; fill: var(--fg); }
+.blabel { font-family: var(--f-mono); font-size: 11px; fill: var(--board-fg); }
+.btitle { font-family: var(--f-display); font-stretch: 85%; font-weight: 700; font-size: 16px; fill: var(--board-fg); }
+.pinhead { fill: #d4a017; stroke: var(--part-edge); stroke-width: 1; }
+.junction { fill: var(--fg); }
+.flag { font-family: var(--f-mono); font-size: 11px; font-weight: 600; fill: var(--fg); }
+.gnd { stroke: var(--fg); stroke-width: 2; fill: none; }
+.res { fill: var(--part); stroke: var(--part-edge); stroke-width: 1.5; }
+.wire { fill: none; stroke-width: 3.2; stroke-linecap: round; stroke-linejoin: round; transition: opacity .15s; }
+.halo { fill: none; stroke-width: 5.6; stroke-linecap: round; stroke-linejoin: round; transition: opacity .15s; }
+svg.focus g.w:not(.on) { opacity: .15; }
+@media (prefers-reduced-motion: reduce) { .wire, .halo { transition: none; } }
+@media print {
+  @page { size: Letter landscape; margin: 0.35in; }
+  :root { --bg: #fff; }
+  body { -webkit-print-color-adjust: exact; print-color-adjust: exact; font-size: 12px; line-height: 1.4; }
+  .wrap { padding: 0; gap: 12px; max-width: none; }
+  h1 { font-size: 32px; }
+  h2 { font-size: 18px; margin-bottom: 6px; }
+  .lede { max-width: none; font-size: 13px; }
+  .diagram svg { min-width: 0; width: auto; height: 5.6in; margin: 0 auto; }
+  .legend { justify-content: center; }
+  .cols { break-before: page; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 16px; }
+  .card { padding: 12px 14px 8px; }
+  td, th { padding: 4px 6px; }
+  td { font-size: 12px; }
+  .notes { gap: 8px; }
+  .notes p { font-size: 12px; }
+  .sw { width: 16px; }
+}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">XIAO ESP32S3 build · firmware v2.2.1</div>
+    <h1>WeighMyBru² XIAO Wiring</h1>
+    <p class="lede">Every connection between the Seeed XIAO ESP32S3, HX711, load cell, OLED, two TTP223 touch modules, and the Li-ion battery. GPIO numbers come from <code>include/BoardConfig.h</code> and are the same as the SuperMini build. Only the physical pins change. Wire colors match the official XIAO diagram on weighmybru.com. Hover a row in the table to highlight its wire.</p>
+  </header>
+
+  <section class="panel">
+    <div class="diagram"><svg id="sch" viewBox="0 0 1120 720" role="img" aria-label="Wiring schematic for WeighMyBru² on the XIAO ESP32S3"></svg></div>
+    <div class="legend">
+      <span><i class="dot"></i> Dot = joined wires. Crossing lines without a dot are not connected.</span>
+      <span><b style="font-family:var(--f-mono)">3V3</b> flag = XIAO 3V3 pin</span>
+      <span><svg width="16" height="14" viewBox="0 0 16 14"><path class="gnd" d="M8 0v5M2 5h12M4.5 9h7M7 13h2"/></svg> = XIAO GND</span>
+      <span>Board drawn from the front, USB-C at the top.</span>
+    </div>
+  </section>
+
+  <div class="cols">
+    <section class="panel card">
+      <h2>Pin map</h2>
+      <div class="tablebox">
+      <table>
+        <thead><tr><th>XIAO pin</th><th>GPIO</th><th>Goes to</th><th>Wire</th><th>Firmware name</th></tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+      </div>
+      <h2 style="margin-top:20px">Load cell to HX711</h2>
+      <div class="tablebox">
+      <table>
+        <thead><tr><th>Load cell wire</th><th>HX711 pad</th></tr></thead>
+        <tbody>
+          <tr data-w="lc"><td><span class="sw" style="background:#d42a2a"></span>Red</td><td class="pin">E+</td></tr>
+          <tr data-w="lc"><td><span class="sw" style="background:#1a1a1a"></span>Black</td><td class="pin">E−</td></tr>
+          <tr data-w="lc"><td><span class="sw" style="background:#f2f2f2"></span>White</td><td class="pin">A−</td></tr>
+          <tr data-w="lc"><td><span class="sw" style="background:#1fa83a"></span>Green</td><td class="pin">A+</td></tr>
+        </tbody>
+      </table>
+      </div>
+    </section>
+
+    <section class="panel card notes">
+      <h2>Build notes</h2>
+      <div><h3>D4 and D5 go to the HX711, not the OLED</h3><p>Seeed's pinout labels D4 and D5 as SDA and SCL. This firmware ignores those labels: D4 and D5 drive the HX711, and the OLED uses D9 (SDA) and D10 (SCL). Wiring the OLED to D4/D5 leaves the screen blank.</p></div>
+      <div><h3>Battery pads are on the back</h3><p>Solder the battery leads to the BAT+ and BAT− pads on the underside of the XIAO. The XIAO has a built-in charger, so the battery charges over USB-C. The slide switch sits on the negative lead, the same as the SuperMini build.</p></div>
+      <div><h3>Battery sense divider</h3><p>The XIAO does not route its battery voltage to an ADC pin, so you still need the two 100 kΩ resistors. Their midpoint goes to D8 (GPIO7). The firmware multiplies the reading by 2.0, so a full 4.2 V cell reads 2.1 V at the pin.</p></div>
+      <div><h3>Touch pads are TTP223 modules</h3><p>The firmware reads D2 and D3 with <code>digitalRead</code> and an internal pull-down. Each pad needs a TTP223 module with SIG, VCC and GND.</p></div>
+      <div><h3>Both touch pins do extra jobs</h3><p>D2 wakes the scale from deep sleep. Holding the tare pad (D3) during boot clears the saved WiFi credentials.</p></div>
+      <div><h3>Unused pins</h3><p>Leave 5V, D0, D1, D6 and D7 unconnected.</p></div>
+      <div><h3>Flash the XIAO firmware</h3><p>Use the <code>esp32s3-xiao</code> build. It sets <code>BOARD_XIAO</code> and the 8 MB flash layout.</p></div>
+      <p class="src">Sources: <code>include/BoardConfig.h</code>, <code>platformio.ini</code>, <code>src/main.cpp</code>, the official XIAO wiring image in the <a href="https://weighmybru.com/guides/assembly-guide/" target="_blank" rel="noopener">assembly guide</a>, and Seeed's XIAO ESP32S3 pinout.</p>
+    </section>
+  </div>
+</div>
+
+<script>
+const C = { red:"#d42a2a", black:"#1a1a1a", white:"#f2f2f2", green:"#1fa83a", yellow:"#e3c400", gray:"#8c8c8c",
+  orange:"#e8721c", magenta:"#d81fc9", blue:"#2f7fd9", brown:"#7a3b12" };
+const NS = "http://www.w3.org/2000/svg";
+const svg = document.getElementById("sch");
+const layers = { parts: g(), wires: g(), top: g() };
+function g(cls){ const e=document.createElementNS(NS,"g"); if(cls) e.setAttribute("class",cls); return e; }
+function el(tag, attrs, parent, text){ const e=document.createElementNS(NS,tag); for(const k in attrs) e.setAttribute(k, attrs[k]); if(text!=null) e.textContent=text; (parent||layers.parts).appendChild(e); return e; }
+svg.append(layers.parts, layers.wires, layers.top);
+
+function part(x,y,w,h,title,sub){ el("rect",{x,y,width:w,height:h,rx:5,class:"part"}); el("text",{x:x+w/2,y:y+h/2-(sub?4:-5),"text-anchor":"middle",class:"ptitle"},null,title); if(sub) el("text",{x:x+w/2,y:y+h/2+13,"text-anchor":"middle",class:"psub"},null,sub); }
+function pin(x,y,label,side,cls){ el("circle",{cx:x,cy:y,r:3.6,class:"pinhead"},layers.top);
+  const off = {l:[9,4,"start"], r:[-9,4,"end"], t:[0,17,"middle"], b:[0,-9,"middle"]}[side];
+  el("text",{x:x+off[0],y:y+off[1],"text-anchor":off[2],class:cls||"plabel"},null,label); }
+
+// XIAO ESP32S3, front view
+el("rect",{x:520,y:230,width:180,height:300,rx:14,class:"board"});
+el("rect",{x:594,y:220,width:32,height:22,rx:4,fill:"#b9bec4",stroke:"#6b7177"});
+el("text",{x:610,y:216,"text-anchor":"middle",class:"psub"},null,"USB-C");
+el("text",{x:610,y:400,"text-anchor":"middle",class:"btitle"},null,"XIAO");
+el("text",{x:610,y:419,"text-anchor":"middle",class:"btitle"},null,"ESP32S3");
+const LP=["D0","D1","D2","D3","D4","D5","D6"], RP=["5V","GND","3V3","D10","D9","D8","D7"];
+LP.forEach((p,i)=>pin(520,268+38*i,p,"l","blabel"));
+RP.forEach((p,i)=>pin(700,268+38*i,p,"r","blabel"));
+pin(580,230,"BAT−","t","blabel"); pin(640,230,"BAT+","t","blabel");
+el("text",{x:610,y:520,"text-anchor":"middle",class:"blabel"},null,"BAT pads on back");
+el("text",{x:712,y:264,class:"psub"},null,"(unused)");
+
+// Touch modules
+part(180,150,160,110,"TTP223 · Power","sleep / wake");
+pin(340,175,"SIG","r"); pin(180,210,"VCC","l"); pin(180,240,"GND","l");
+part(180,290,160,100,"TTP223 · Tare","tap = tare");
+pin(340,315,"SIG","r"); pin(180,345,"VCC","l"); pin(180,372,"GND","l");
+
+// HX711
+part(180,405,160,165,"HX711","24-bit load cell amp");
+pin(340,420,"DT","r"); pin(340,458,"SCK","r"); pin(180,440,"VCC","l"); pin(180,540,"GND","l");
+[["E+",200],["E−",240],["A−",280],["A+",320]].forEach(([n,x])=>pin(x,570,n,"b"));
+
+// Load cell
+part(180,630,160,62,"500 g load cell","I-shaped bar");
+[200,240,280,320].forEach(x=>el("circle",{cx:x,cy:630,r:3.6,class:"pinhead"},layers.top));
+
+// OLED
+part(840,340,170,130,"SSD1306 OLED","0.91″ · 128×32");
+pin(840,382,"SCL","l"); pin(840,420,"SDA","l"); pin(1010,395,"VCC","r"); pin(1010,435,"GND","r");
+
+// Battery and switch
+part(920,40,170,120,"Li-ion cell","3.7 V · 800 mAh");
+pin(920,80,"−","l"); pin(920,130,"+","l");
+el("text",{x:1005,y:178,"text-anchor":"middle",class:"psub"},null,"JST-PH 2.0 plug");
+el("circle",{cx:770,cy:80,r:4.5,class:"pinhead"},layers.top);
+el("circle",{cx:830,cy:80,r:4.5,class:"pinhead"},layers.top);
+el("line",{x1:770,y1:80,x2:826,y2:62,stroke:"var(--fg)","stroke-width":2.4,"stroke-linecap":"round"},layers.top);
+el("text",{x:800,y:110,"text-anchor":"middle",class:"psub"},null,"slide switch");
+
+function resistor(x,y,w,h,label,lx,ly,anchor){ el("rect",{x,y,width:w,height:h,rx:3,class:"res"},layers.top);
+  el("text",{x:lx,y:ly,"text-anchor":anchor||"start",class:"psub"},null,label); }
+function flag3v3(x,y,dir){ const w=36, dx = dir<0 ? x-w : x;
+  el("path",{d:`M${dx} ${y-9}h${w}v18h-${w}z`,fill:"var(--panel)",stroke:C.brown,"stroke-width":1.5},layers.top);
+  el("text",{x:dx+w/2,y:y+4,"text-anchor":"middle",class:"flag"},layers.top,"3V3"); }
+function flagBat(x,y){ el("path",{d:`M${x-20} ${y}h40v18h-40z`,fill:"var(--panel)",stroke:C.red,"stroke-width":1.5},layers.top);
+  el("text",{x,y:y+13,"text-anchor":"middle",class:"flag"},layers.top,"BAT+"); }
+function ground(x,y){ el("path",{d:`M${x} ${y}v8M${x-9} ${y+8}h18M${x-5.5} ${y+13}h11M${x-2} ${y+18}h4`,class:"gnd"},layers.top); }
+
+const wires = [
+  ["d2","yellow",[[520,344],[470,344],[470,175],[340,175]]],
+  ["d3","gray",[[520,382],[440,382],[440,315],[340,315]]],
+  ["d4","orange",[[520,420],[340,420]]],
+  ["d5","magenta",[[520,458],[340,458]]],
+  ["d10","black",[[700,382],[840,382]]],
+  ["d9","white",[[700,420],[840,420]]],
+  ["d8","green",[[700,458],[760,458],[760,560]]],
+  ["v33","brown",[[700,344],[770,344]]],["v33","brown",[[180,210],[140,210]]],["v33","brown",[[180,345],[140,345]]],
+  ["v33","brown",[[180,440],[140,440]]],["v33","brown",[[1010,395],[1050,395]]],
+  ["gnd","blue",[[700,306],[740,306],[740,314]]],["gnd","blue",[[180,240],[130,240],[130,248]]],["gnd","blue",[[180,372],[130,372],[130,380]]],
+  ["gnd","blue",[[180,540],[130,540],[130,548]]],["gnd","blue",[[1010,435],[1060,435],[1060,443]]],
+  ["bat","red",[[640,230],[640,130],[920,130]]],
+  ["bat","black",[[580,230],[580,80],[770,80]]],["bat","black",[[830,80],[920,80]]],
+  ["div","green",[[760,560],[790,560]]],["div","green",[[850,560],[880,560],[880,568]]],
+  ["div","green",[[760,560],[760,582]]],["div","green",[[760,638],[760,658]]],
+  ["lc","red",[[200,570],[200,630]]],["lc","black",[[240,570],[240,630]]],["lc","white",[[280,570],[280,630]]],["lc","green",[[320,570],[320,630]]],
+];
+const groups = {};
+wires.forEach(([id,col,pts])=>{
+  const grp = groups[id] || (groups[id] = (()=>{ const x=g("w"); x.dataset.id=id; layers.wires.appendChild(x); return x; })());
+  const d = "M"+pts.map(p=>p.join(" ")).join("L");
+  const halo = col==="black" ? "var(--halo-black)" : col==="white" ? "var(--halo-white)" : null;
+  if (halo) el("path",{d,class:"halo",stroke:halo},grp);
+  el("path",{d,class:"wire",stroke:C[col]},grp);
+});
+
+flag3v3(770,344,1); flag3v3(140,210,-1); flag3v3(140,345,-1); flag3v3(140,440,-1); flag3v3(1050,395,1);
+ground(740,314); ground(130,248); ground(130,380); ground(130,548); ground(1060,443); ground(880,568);
+resistor(790,551,60,18,"R2 100 kΩ",820,543,"middle");
+resistor(751,582,18,56,"R1 100 kΩ",777,614);
+flagBat(760,658);
+el("circle",{cx:760,cy:560,r:4.5,class:"junction"},layers.top);
+el("circle",{cx:700,cy:130,r:4.5,class:"junction"},layers.top);
+el("text",{x:700,y:120,"text-anchor":"middle",class:"flag"},layers.top,"BAT+");
+el("text",{x:690,y:577,"text-anchor":"middle",class:"psub"},null,"battery sense");
+
+const rows = [
+  ["D2","GPIO3","d2","yellow","TTP223 Power · SIG","TOUCH_SLEEP_PIN"],
+  ["D3","GPIO4","d3","gray","TTP223 Tare · SIG","TOUCH_TARE_PIN"],
+  ["D4","GPIO5","d4","orange","HX711 · DT","HX711_DATA_PIN"],
+  ["D5","GPIO6","d5","magenta","HX711 · SCK","HX711_CLOCK_PIN"],
+  ["D8","GPIO7","d8","green","Divider midpoint (R1/R2)","BATTERY_PIN"],
+  ["D9","GPIO8","d9","white","OLED · SDA","I2C_SDA_PIN"],
+  ["D10","GPIO9","d10","black","OLED · SCL","I2C_SCL_PIN"],
+  ["3V3","","v33","brown","VCC on HX711, OLED, both TTP223",""],
+  ["GND","","gnd","blue","GND on HX711, OLED, both TTP223, R2",""],
+  ["BAT+","back","bat","red","Battery + and R1",""],
+  ["BAT−","back","bat","black","Slide switch, then battery −",""],
+];
+const tb = document.getElementById("rows");
+rows.forEach(([p,gp,id,col,to,k])=>{
+  const tr=document.createElement("tr"); tr.dataset.w=id; tr.tabIndex=0;
+  tr.innerHTML=`<td class="pin">${p}</td><td class="const">${gp}</td><td>${to}</td><td><span class="sw" style="background:${C[col]}"></span>${col}</td><td class="const">${k}</td>`;
+  tb.appendChild(tr);
+});
+function focusWire(id){ svg.classList.toggle("focus", !!id); Object.entries(groups).forEach(([k,grp])=>grp.classList.toggle("on", k===id));
+  document.querySelectorAll("tr[data-w]").forEach(r=>r.classList.toggle("on", r.dataset.w===id)); }
+document.querySelectorAll("tr[data-w]").forEach(tr=>{
+  tr.addEventListener("mouseenter",()=>focusWire(tr.dataset.w)); tr.addEventListener("mouseleave",()=>focusWire(null));
+  tr.addEventListener("focus",()=>focusWire(tr.dataset.w)); tr.addEventListener("blur",()=>focusWire(null));
+});
+Object.entries(groups).forEach(([k,grp])=>{ grp.style.cursor="pointer";
+  grp.addEventListener("mouseenter",()=>focusWire(k)); grp.addEventListener("mouseleave",()=>focusWire(null)); });
+</script>
+</body>
+</html>
